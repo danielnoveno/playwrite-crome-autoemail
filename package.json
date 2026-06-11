@@ -1,0 +1,29 @@
+{
+  "name": "gmail-scheduler",
+  "version": "1.0.0",
+  "description": "Native Gmail Schedule Send using Playwright",
+  "main": "src/scheduleNative.js",
+  "scripts": {
+    "login": "node src/loginProfiles.js",
+    "schedule": "node src/scheduleNative.js",
+    "test:dry": "node src/scheduleNative.js --limit=3 --dry-run",
+    "test:small": "node src/scheduleNative.js --limit=3",
+    "convert": "node scripts/excelToScheduleCsv.js --input=data/schedule_tracker.xlsx --output=data/schedule_tracker.csv --start-time=21:00 --gap-minutes=7",
+    "validate": "node scripts/validateSchedule.js",
+    "dashboard": "node server.js & cd dashboard/frontend && npm run dev -- --port 3000 --host"
+  },
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "csv-parse": "^5.5.6",
+    "csv-stringify": "^6.5.0",
+    "dayjs": "^1.11.11",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "morgan": "^1.11.0",
+    "multer": "^2.1.1",
+    "playwright": "^1.44.0",
+    "xlsx": "^0.18.5",
+    "yargs": "^17.7.2"
+  }
+}
