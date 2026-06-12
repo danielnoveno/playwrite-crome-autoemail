@@ -1,5 +1,6 @@
 const path = require('path');
 const config = require('./config');
+require('dayjs/locale/id'); // Indonesian month names for Gmail in Bahasa Indonesia
 
 async function openGmail(page) {
   await page.goto(config.GMAIL_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -78,19 +79,61 @@ async function setScheduleDateTime(page, scheduledAtDayjs) {
   await pickBtn.waitFor({ timeout: 10000 });
   await pickBtn.click();
 
-  // Step 2: fill the date input inside the dialog
+  // Step 2: fill the date input inside the dialog.
+  // Gmail validates the text against the account language: English UI
+  // wants "Jun 13, 2026", Indonesian UI wants "13 Jun 2026". Try each
+  // format until the "invalid date" warning disappears.
   const dateInput = page.locator('[role="dialog"] input[aria-label*="Date" i], [role="dialog"] input[aria-label*="Tanggal" i]').first();
   await dateInput.waitFor({ timeout: 10000 });
-  await dateInput.click();
-  await dateInput.fill(scheduledAtDayjs.format('MMM D, YYYY'));
-  await page.keyboard.press('Tab'); // commit the date so the calendar closes
 
-  // Step 3: fill the time input (English Gmail expects e.g. "9:00 PM")
+  const dateCandidates = [
+    scheduledAtDayjs.format('MMM D, YYYY'),              // English Gmail
+    scheduledAtDayjs.locale('id').format('D MMM YYYY'),  // Indonesian Gmail
+    scheduledAtDayjs.format('YYYY-MM-DD'),               // last-resort ISO
+  ];
+  let dateAccepted = false;
+  for (const candidate of dateCandidates) {
+    await dateInput.click();
+    await dateInput.fill(candidate);
+    await page.keyboard.press('Tab'); // commit so Gmail validates
+    await page.waitForTimeout(400);
+    const invalid = await page
+      .locator('text=/Invalid date|Tanggal tidak valid/i')
+      .first()
+      .isVisible()
+      .catch(() => false);
+    if (!invalid) { dateAccepted = true; break; }
+  }
+  if (!dateAccepted) {
+    throw new Error(`DATE_FORMAT_REJECTED: Gmail refused all date formats for ${scheduledAtDayjs.format('YYYY-MM-DD')}`);
+  }
+
+  // Step 3: fill the time input. English Gmail expects "9:00 PM",
+  // Indonesian Gmail usually accepts "21.00" / "21:00".
   const timeInput = page.locator('[role="dialog"] input[aria-label*="Time" i], [role="dialog"] input[aria-label*="Waktu" i]').last();
   await timeInput.waitFor({ timeout: 10000 });
-  await timeInput.click();
-  await timeInput.fill(scheduledAtDayjs.format('h:mm A'));
-  await page.keyboard.press('Tab');
+
+  const timeCandidates = [
+    scheduledAtDayjs.format('h:mm A'),  // English Gmail
+    scheduledAtDayjs.format('HH:mm'),   // 24h with colon
+    scheduledAtDayjs.format('HH.mm'),   // Indonesian style
+  ];
+  let timeAccepted = false;
+  for (const candidate of timeCandidates) {
+    await timeInput.click();
+    await timeInput.fill(candidate);
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(400);
+    const invalid = await page
+      .locator('text=/Invalid time|Waktu tidak valid|time is in the past|sudah berlalu/i')
+      .first()
+      .isVisible()
+      .catch(() => false);
+    if (!invalid) { timeAccepted = true; break; }
+  }
+  if (!timeAccepted) {
+    throw new Error(`TIME_FORMAT_REJECTED: Gmail refused the time ${scheduledAtDayjs.format('HH:mm')} (wrong format or already in the past)`);
+  }
 }
 
 async function confirmSchedule(page) {
