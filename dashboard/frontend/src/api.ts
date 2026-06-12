@@ -41,6 +41,7 @@ export const post = <T = any>(path: string, body?: any) =>
   api<T>(path, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined });
 export const put = <T = any>(path: string, body: any) =>
   api<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+export const del = <T = any>(path: string) => api<T>(path, { method: 'DELETE' });
 
 export interface Job {
   id: string;

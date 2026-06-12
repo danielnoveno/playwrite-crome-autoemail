@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Play, FlaskConical, ShieldAlert } from 'lucide-react';
-import { get, post, Job } from '../api';
+import { Play, FlaskConical, ShieldAlert, Trash2 } from 'lucide-react';
+import { get, post, del, Job } from '../api';
 import LogViewer from '../components/LogViewer';
 
 const RunPage: React.FC = () => {
@@ -97,7 +97,22 @@ const RunPage: React.FC = () => {
       )}
 
       <div className="table-section">
-        <h2>Job History</h2>
+        <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <h2 style={{ margin: 0 }}>Job History</h2>
+          <button
+            className="btn btn-small btn-danger"
+            onClick={async () => {
+              if (!confirm('Hapus semua riwayat job dan file log-nya? (Job yang sedang berjalan tidak ikut terhapus)')) return;
+              try {
+                await del('/api/jobs');
+                setActiveJobId(null);
+                loadJobs();
+              } catch (e: any) { setError(e.message); }
+            }}
+          >
+            <Trash2 size={14} /> Hapus Riwayat
+          </button>
+        </div>
         <table>
           <thead>
             <tr><th>Job</th><th>Status</th><th>Started</th><th>Finished</th><th></th></tr>

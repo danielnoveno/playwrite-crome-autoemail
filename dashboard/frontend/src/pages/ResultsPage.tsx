@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshCw, Image } from 'lucide-react';
-import { get, screenshotUrl } from '../api';
+import { RefreshCw, Image, Trash2 } from 'lucide-react';
+import { get, del, screenshotUrl } from '../api';
 
 const ResultsPage: React.FC = () => {
   const [tab, setTab] = useState<'scheduled' | 'failed'>('scheduled');
@@ -30,6 +30,17 @@ const ResultsPage: React.FC = () => {
           </button>
         </div>
         <button className="btn btn-small btn-outline" onClick={load}><RefreshCw size={14} /> Refresh</button>
+        {tab === 'failed' && failed.length > 0 && (
+          <button
+            className="btn btn-small btn-danger"
+            onClick={async () => {
+              if (!confirm('Hapus semua log Failed? (Backup otomatis disimpan di data/backups)')) return;
+              try { await del('/api/results/failed'); load(); } catch (e: any) { setError(e.message); }
+            }}
+          >
+            <Trash2 size={14} /> Hapus Semua Failed
+          </button>
+        )}
       </div>
       {error && <p className="error-text">{error}</p>}
 

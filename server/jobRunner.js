@@ -175,4 +175,24 @@ function getJobLogs(id, offset = 0) {
   };
 }
 
-module.exports = { startJob, stopJob, listJobs, getJob, getJobLogs };
+function clearFinishedJobs() {
+  let cleared = 0;
+  for (const [id, job] of jobs) {
+    if (job.status === 'running' || job.status === 'stopping') continue;
+    jobs.delete(id);
+    cleared += 1;
+    try { if (fs.existsSync(job.logFile)) fs.unlinkSync(job.logFile); } catch (_) { /* best-effort */ }
+  }
+  // Also remove orphan .log files left over from previous server runs.
+  try {
+    const activeLogs = new Set([...jobs.values()].map(j => path.basename(j.logFile)));
+    for (const f of fs.readdirSync(LOGS_DIR)) {
+      if (f.endsWith('.log') && !activeLogs.has(f)) {
+        fs.unlinkSync(path.join(LOGS_DIR, f));
+      }
+    }
+  } catch (_) { /* logs dir may not exist yet */ }
+  return cleared;
+}
+
+module.exports = { startJob, stopJob, listJobs, getJob, getJobLogs, clearFinishedJobs };

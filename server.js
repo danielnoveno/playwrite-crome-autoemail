@@ -26,6 +26,10 @@ const HEADERS = {
     'scheduled_at', 'category', 'company_name', 'website', 'day_name',
     'per_sender_sequence', 'notes',
   ],
+  failed: [
+    'queue_id', 'sender_email', 'recipient_email', 'subject', 'scheduled_at',
+    'error_code', 'error_message', 'failed_at', 'screenshot_path',
+  ],
 };
 
 app.use(cors());
@@ -228,6 +232,13 @@ app.get('/api/results/failed', wrap((req, res) => {
   res.json(csv.readCsv(DATA('failed_results.csv')));
 }));
 
+// Clear the failed-results log (a backup copy is kept in data/backups).
+app.delete('/api/results/failed', wrap((req, res) => {
+  backupFile(DATA('failed_results.csv'));
+  csv.writeCsv(DATA('failed_results.csv'), [], HEADERS.failed);
+  res.json({ ok: true });
+}));
+
 app.get('/api/screenshots/:name', (req, res) => {
   const name = path.basename(req.params.name); // no path traversal
   const file = path.join(config.SCREENSHOT_DIR, name);
@@ -295,6 +306,11 @@ app.post('/api/jobs/login', wrap((req, res) => {
 }));
 
 app.get('/api/jobs', (req, res) => res.json(jobRunner.listJobs()));
+
+// Clear job history + log files (running jobs are kept).
+app.delete('/api/jobs', wrap((req, res) => {
+  res.json({ ok: true, cleared: jobRunner.clearFinishedJobs() });
+}));
 
 app.get('/api/jobs/:id', (req, res) => {
   const job = jobRunner.getJob(req.params.id);
