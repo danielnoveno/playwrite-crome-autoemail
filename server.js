@@ -164,6 +164,59 @@ app.put('/api/schedule', wrap((req, res) => {
   res.json({ ok: true, count: rows.length });
 }));
 
+// Append a single new email row; queue_id is generated server-side.
+app.post('/api/schedule/rows', wrap((req, res) => {
+  const { sender_email, recipient_email, subject, template_key, scheduled_at, category, company_name, website, notes } = req.body || {};
+
+  const senders = csv.readCsv(DATA('sender_accounts.csv'));
+  const sender = senders.find(s => s.sender_email === sender_email && s.enabled === 'true');
+  if (!sender) return res.status(400).json({ error: `Sender tidak ditemukan / tidak aktif: ${sender_email}` });
+
+  if (!recipient_email || !recipient_email.includes('@')) {
+    return res.status(400).json({ error: `recipient_email tidak valid: ${recipient_email}` });
+  }
+
+  const templates = csv.readCsv(DATA('templates.csv'));
+  if (!templates.find(t => t.template_key === template_key)) {
+    return res.status(400).json({ error: `Template tidak ditemukan: ${template_key}` });
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(scheduled_at || '')) {
+    return res.status(400).json({ error: `Format scheduled_at harus YYYY-MM-DD HH:mm, dapat: ${scheduled_at}` });
+  }
+
+  const rows = csv.readCsv(DATA('schedule_tracker.csv'));
+  const datePart = scheduled_at.slice(0, 10).replace(/-/g, '');
+  const existingIds = new Set(rows.map(r => r.queue_id));
+  let seq = rows.length + 1;
+  let queueId;
+  do {
+    queueId = `Q-${datePart}-${String(seq).padStart(6, '0')}`;
+    seq += 1;
+  } while (existingIds.has(queueId));
+
+  const dayName = new Date(scheduled_at.replace(' ', 'T')).toLocaleDateString('en-US', { weekday: 'long' });
+  const perSenderSeq = rows.filter(r => r.sender_email === sender_email).length + 1;
+
+  const newRow = {
+    queue_id: queueId,
+    sender_email,
+    recipient_email,
+    subject: subject || '',
+    template_key,
+    scheduled_at,
+    category: category || '',
+    company_name: company_name || '',
+    website: website || '',
+    day_name: dayName,
+    per_sender_sequence: String(perSenderSeq),
+    notes: notes || '',
+  };
+
+  csv.appendCsv(DATA('schedule_tracker.csv'), newRow, HEADERS.schedule);
+  res.json({ ok: true, row: newRow });
+}));
+
 // ---------------------------------------------------------------------------
 // Results
 // ---------------------------------------------------------------------------

@@ -1,3 +1,1 @@
 queue_id,sender_email,recipient_email,subject,template_key,scheduled_at,category,company_name,website,day_name,per_sender_sequence,notes
-Q-20260610-000001,founders@contactsgetredditor.com,test1@example.com,Contoh Subject 1,T1,2026-06-10 21:00,Test,Perusahaan A,perusahaanA.com,Wednesday,1,
-Q-20260610-000002,founders@contactsgetredditor.com,test2@example.com,Contoh Subject 2,T1,2026-06-10 21:07,Test,Perusahaan B,perusahaanB.com,Wednesday,2,
