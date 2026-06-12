@@ -118,8 +118,13 @@ async function processRow(sender, row, subject, body, scheduledAt) {
   try {
     context = await chromium.launchPersistentContext(path.resolve(sender.profile_dir), {
       headless: config.HEADLESS,
+      channel: 'chrome', // harus sama dengan loginProfiles.js - profil dibuat oleh Chrome asli
       slowMo: config.SLOW_MO_MS,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-blink-features=AutomationControlled',
+      ],
     });
 
     const page = await context.newPage();
