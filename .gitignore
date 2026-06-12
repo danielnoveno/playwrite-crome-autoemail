@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+profiles/
+screenshots/
+logs/
+data/uploads/
+data/backups/
+data/schedule_tracker.xlsx
+.vite/
