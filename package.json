@@ -10,11 +10,7 @@
     "test:small": "node src/scheduleNative.js --limit=3",
     "convert": "node scripts/excelToScheduleCsv.js --input=data/schedule_tracker.xlsx --output=data/schedule_tracker.csv --start-time=21:00 --gap-minutes=7",
     "validate": "node scripts/validateSchedule.js",
-    "server": "node server.js",
-    "start": "node server.js",
-    "dashboard:dev": "cd dashboard/frontend && npm run dev",
-    "dashboard:build": "cd dashboard/frontend && npm run build",
-    "dashboard": "npm run dashboard:build && node server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "body-parser": "^2.2.2",
