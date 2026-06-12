@@ -1,3 +1,33 @@
 queue_id,sender_email,recipient_email,subject,template_key,scheduled_at,category,company_name,website,day_name,per_sender_sequence,notes
-Q-20260613-000001,dnw022003@gmail.com,novenoow@gmai.com,,T2,2026-06-13 04:10,,,,Saturday,1,
-Q-20260613-000002,dnw022003@gmail.com,novenoow@gmail.com,,T2,2026-06-13 04:09,,,,Saturday,2,
+Q-20260613-000001,novenoow@gmail.com,dnw022003@gmail.com,,T2,2026-06-13 04:33,,,,Saturday,1,
+Q-20260613-000002,novenoow@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 04:50,,,,Saturday,2,
+Q-20260613-900001,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,T1,2026-06-13 06:00,mutual-test,,,Saturday,1,internal warm-up test
+Q-20260613-900002,dnw022003@gmail.com,novenoow@gmail.com,,T2,2026-06-13 06:07,mutual-test,,,Saturday,2,internal warm-up test
+Q-20260613-900003,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,T1,2026-06-13 06:14,mutual-test,,,Saturday,3,internal warm-up test
+Q-20260613-900004,dnw022003@gmail.com,novenoow@gmail.com,,T2,2026-06-13 06:21,mutual-test,,,Saturday,4,internal warm-up test
+Q-20260613-900005,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,T1,2026-06-13 06:28,mutual-test,,,Saturday,5,internal warm-up test
+Q-20260613-900006,dnw022003@gmail.com,novenoow@gmail.com,,T2,2026-06-13 06:35,mutual-test,,,Saturday,6,internal warm-up test
+Q-20260613-900007,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,T1,2026-06-13 06:42,mutual-test,,,Saturday,7,internal warm-up test
+Q-20260613-900008,dnw022003@gmail.com,novenoow@gmail.com,,T2,2026-06-13 06:49,mutual-test,,,Saturday,8,internal warm-up test
+Q-20260613-900009,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,T1,2026-06-13 06:56,mutual-test,,,Saturday,9,internal warm-up test
+Q-20260613-900010,dnw022003@gmail.com,novenoow@gmail.com,,T2,2026-06-13 07:03,mutual-test,,,Saturday,10,internal warm-up test
+Q-20260613-900011,khususfilmkuuu@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:02,mutual-test,,,Saturday,1,internal warm-up test
+Q-20260613-900012,khususfilmkuuu@gmail.com,novenoow@gmail.com,,T2,2026-06-13 06:09,mutual-test,,,Saturday,2,internal warm-up test
+Q-20260613-900013,khususfilmkuuu@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:16,mutual-test,,,Saturday,3,internal warm-up test
+Q-20260613-900014,khususfilmkuuu@gmail.com,novenoow@gmail.com,,T2,2026-06-13 06:23,mutual-test,,,Saturday,4,internal warm-up test
+Q-20260613-900015,khususfilmkuuu@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:30,mutual-test,,,Saturday,5,internal warm-up test
+Q-20260613-900016,khususfilmkuuu@gmail.com,novenoow@gmail.com,,T2,2026-06-13 06:37,mutual-test,,,Saturday,6,internal warm-up test
+Q-20260613-900017,khususfilmkuuu@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:44,mutual-test,,,Saturday,7,internal warm-up test
+Q-20260613-900018,khususfilmkuuu@gmail.com,novenoow@gmail.com,,T2,2026-06-13 06:51,mutual-test,,,Saturday,8,internal warm-up test
+Q-20260613-900019,khususfilmkuuu@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:58,mutual-test,,,Saturday,9,internal warm-up test
+Q-20260613-900020,khususfilmkuuu@gmail.com,novenoow@gmail.com,,T2,2026-06-13 07:05,mutual-test,,,Saturday,10,internal warm-up test
+Q-20260613-900021,novenoow@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:04,mutual-test,,,Saturday,1,internal warm-up test
+Q-20260613-900022,novenoow@gmail.com,khususfilmkuuu@gmail.com,,T2,2026-06-13 06:11,mutual-test,,,Saturday,2,internal warm-up test
+Q-20260613-900023,novenoow@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:18,mutual-test,,,Saturday,3,internal warm-up test
+Q-20260613-900024,novenoow@gmail.com,khususfilmkuuu@gmail.com,,T2,2026-06-13 06:25,mutual-test,,,Saturday,4,internal warm-up test
+Q-20260613-900025,novenoow@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:32,mutual-test,,,Saturday,5,internal warm-up test
+Q-20260613-900026,novenoow@gmail.com,khususfilmkuuu@gmail.com,,T2,2026-06-13 06:39,mutual-test,,,Saturday,6,internal warm-up test
+Q-20260613-900027,novenoow@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 06:46,mutual-test,,,Saturday,7,internal warm-up test
+Q-20260613-900028,novenoow@gmail.com,khususfilmkuuu@gmail.com,,T2,2026-06-13 06:53,mutual-test,,,Saturday,8,internal warm-up test
+Q-20260613-900029,novenoow@gmail.com,dnw022003@gmail.com,,T1,2026-06-13 07:00,mutual-test,,,Saturday,9,internal warm-up test
+Q-20260613-900030,novenoow@gmail.com,khususfilmkuuu@gmail.com,,T2,2026-06-13 07:07,mutual-test,,,Saturday,10,internal warm-up test
