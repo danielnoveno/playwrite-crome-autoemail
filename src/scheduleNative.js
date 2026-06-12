@@ -118,7 +118,7 @@ async function run() {
         error_code: err.message.includes('LOGIN_REQUIRED') ? 'LOGIN_REQUIRED' : 'ERROR',
         error_message: err.message,
         failed_at: new Date().toISOString(),
-        screenshot_path: '',
+        screenshot_path: err.screenshotPath || '',
       }, ['queue_id', 'sender_email', 'recipient_email', 'subject', 'scheduled_at', 'error_code', 'error_message', 'failed_at', 'screenshot_path']);
     }
   }
@@ -128,6 +128,7 @@ async function run() {
 
 async function processRow(sender, row, subject, body, scheduledAt) {
   let context;
+  let page;
   try {
     context = await chromium.launchPersistentContext(path.resolve(sender.profile_dir), {
       headless: config.HEADLESS,
@@ -140,7 +141,7 @@ async function processRow(sender, row, subject, body, scheduledAt) {
       ],
     });
 
-    const page = await context.newPage();
+    page = await context.newPage();
     await gmailUi.openGmail(page);
     await gmailUi.ensureLoggedIn(page);
     
@@ -156,9 +157,13 @@ async function processRow(sender, row, subject, body, scheduledAt) {
     console.log('Successfully scheduled native.');
     return true;
   } catch (err) {
-    if (context) {
-      const screenshotPath = await gmailUi.takeFailureScreenshot(await context.pages()[0] || null, row.queue_id);
-      console.log(`Screenshot saved: ${screenshotPath}`);
+    // Screenshot the Gmail page itself, not context.pages()[0] which is
+    // the initial blank tab of the persistent context.
+    if (page) {
+      try {
+        err.screenshotPath = await gmailUi.takeFailureScreenshot(page, row.queue_id);
+        console.log(`Screenshot saved: ${err.screenshotPath}`);
+      } catch (_) { /* screenshot is best-effort */ }
     }
     throw err;
   } finally {

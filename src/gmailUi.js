@@ -69,15 +69,28 @@ async function openScheduleSend(page) {
 }
 
 async function setScheduleDateTime(page, scheduledAtDayjs) {
-  // Wait for the date picker dialog to appear (any input with aria-label containing "Date" or "Tanggal")
+  // Step 1: the Schedule-send popup shows preset options plus a
+  // "Pick date & time" link - the custom date/time dialog only appears
+  // after clicking it.
+  const pickBtn = page.locator(
+    'text=/Pick date & time|Pilih tanggal & waktu|Pilih tanggal dan waktu/i'
+  ).first();
+  await pickBtn.waitFor({ timeout: 10000 });
+  await pickBtn.click();
+
+  // Step 2: fill the date input inside the dialog
   const dateInput = page.locator('[role="dialog"] input[aria-label*="Date" i], [role="dialog"] input[aria-label*="Tanggal" i]').first();
   await dateInput.waitFor({ timeout: 10000 });
+  await dateInput.click();
   await dateInput.fill(scheduledAtDayjs.format('MMM D, YYYY'));
+  await page.keyboard.press('Tab'); // commit the date so the calendar closes
 
-  // Time input inside the same dialog
+  // Step 3: fill the time input (English Gmail expects e.g. "9:00 PM")
   const timeInput = page.locator('[role="dialog"] input[aria-label*="Time" i], [role="dialog"] input[aria-label*="Waktu" i]').last();
   await timeInput.waitFor({ timeout: 10000 });
-  await timeInput.fill(scheduledAtDayjs.format('HH:mm'));
+  await timeInput.click();
+  await timeInput.fill(scheduledAtDayjs.format('h:mm A'));
+  await page.keyboard.press('Tab');
 }
 
 async function confirmSchedule(page) {
