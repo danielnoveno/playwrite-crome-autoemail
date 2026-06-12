@@ -247,7 +247,51 @@ app.get('/api/screenshots/:name', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Downloadable CSV template for bulk upload. Uses the team's real sender
+// accounts and template keys so the example rows are instantly valid.
+// ---------------------------------------------------------------------------
+app.get('/api/schedule/template', wrap((req, res) => {
+  const senders = csv.readCsv(DATA('sender_accounts.csv')).filter(s => s.enabled === 'true');
+  const templates = csv.readCsv(DATA('templates.csv'));
+  const sender1 = senders[0]?.sender_email || 'akun-pengirim@gmail.com';
+  const sender2 = senders[1]?.sender_email || sender1;
+  const tplKey = templates[0]?.template_key || 'T1';
+
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const dateStr = tomorrow.toISOString().slice(0, 10);
+
+  const exampleRows = [
+    {
+      queue_id: '', // kosongkan - dibuat otomatis oleh sistem
+      sender_email: sender1,
+      recipient_email: 'tujuan1@contoh.com',
+      subject: '',
+      template_key: tplKey,
+      scheduled_at: `${dateStr} 21:00`,
+      category: '', company_name: '', website: '', day_name: '', per_sender_sequence: '', notes: '',
+    },
+    {
+      queue_id: '',
+      sender_email: sender2,
+      recipient_email: 'tujuan2@contoh.com',
+      subject: 'subject khusus (opsional, kosong = otomatis dari pool)',
+      template_key: tplKey,
+      scheduled_at: `${dateStr} 21:07`,
+      category: '', company_name: '', website: '', day_name: '', per_sender_sequence: '', notes: '',
+    },
+  ];
+
+  const { stringify } = require('csv-stringify/sync');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="template_jadwal_email.csv"');
+  res.send(stringify(exampleRows, { header: true, columns: HEADERS.schedule }));
+}));
+
+// ---------------------------------------------------------------------------
 // Upload: .xlsx is saved (then converted via job), .csv replaces the tracker.
+// Uploaded CSVs are normalized: queue_id / day_name / per_sender_sequence
+// may be left blank and are generated here, and required fields are
+// validated before anything is written.
 // ---------------------------------------------------------------------------
 app.post('/api/upload', upload.single('file'), wrap((req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded (field name: file)' });
@@ -255,9 +299,75 @@ app.post('/api/upload', upload.single('file'), wrap((req, res) => {
   const savedPath = req.file.path;
 
   if (ext === '.csv' && req.body.target === 'schedule') {
+    const uploaded = csv.readCsv(savedPath);
+    if (uploaded.length === 0) {
+      return res.status(400).json({ error: 'CSV kosong atau header tidak terbaca. Gunakan template dari tombol Download Template.' });
+    }
+
+    const senders = new Set(
+      csv.readCsv(DATA('sender_accounts.csv')).filter(s => s.enabled === 'true').map(s => s.sender_email)
+    );
+    const templateKeys = new Set(csv.readCsv(DATA('templates.csv')).map(t => t.template_key));
+
+    const errors = [];
+    const seenIds = new Set();
+    const perSenderCount = {};
+    const normalized = uploaded.map((row, i) => {
+      const line = i + 2; // +1 header, +1 zero-index
+      const senderEmail = (row.sender_email || '').trim();
+      const recipient = (row.recipient_email || '').trim();
+      const tplKey = (row.template_key || '').trim();
+      const schedAt = (row.scheduled_at || '').trim();
+
+      if (!senders.has(senderEmail)) errors.push(`Baris ${line}: sender_email "${senderEmail}" tidak terdaftar/tidak aktif`);
+      if (!recipient.includes('@')) errors.push(`Baris ${line}: recipient_email "${recipient}" tidak valid`);
+      if (!templateKeys.has(tplKey)) errors.push(`Baris ${line}: template_key "${tplKey}" tidak ditemukan`);
+      if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(schedAt)) errors.push(`Baris ${line}: scheduled_at "${schedAt}" harus format YYYY-MM-DD HH:mm`);
+
+      // Auto-generate queue_id when blank
+      let queueId = (row.queue_id || '').trim();
+      if (!queueId && /^\d{4}-\d{2}-\d{2}/.test(schedAt)) {
+        const datePart = schedAt.slice(0, 10).replace(/-/g, '');
+        let seq = i + 1;
+        do {
+          queueId = `Q-${datePart}-${String(seq).padStart(6, '0')}`;
+          seq += 1;
+        } while (seenIds.has(queueId));
+      }
+      if (seenIds.has(queueId)) errors.push(`Baris ${line}: queue_id "${queueId}" duplikat`);
+      seenIds.add(queueId);
+
+      perSenderCount[senderEmail] = (perSenderCount[senderEmail] || 0) + 1;
+      const dayName = /^\d{4}-\d{2}-\d{2}/.test(schedAt)
+        ? new Date(schedAt.replace(' ', 'T')).toLocaleDateString('en-US', { weekday: 'long' })
+        : '';
+
+      return {
+        queue_id: queueId,
+        sender_email: senderEmail,
+        recipient_email: recipient,
+        subject: row.subject || '',
+        template_key: tplKey,
+        scheduled_at: schedAt,
+        category: row.category || '',
+        company_name: row.company_name || '',
+        website: row.website || '',
+        day_name: row.day_name || dayName,
+        per_sender_sequence: row.per_sender_sequence || String(perSenderCount[senderEmail]),
+        notes: row.notes || '',
+      };
+    });
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        error: `Upload ditolak - ${errors.length} masalah ditemukan:\n` + errors.slice(0, 10).join('\n') +
+          (errors.length > 10 ? `\n…dan ${errors.length - 10} lainnya` : ''),
+      });
+    }
+
     backupFile(DATA('schedule_tracker.csv'));
-    fs.copyFileSync(savedPath, DATA('schedule_tracker.csv'));
-    return res.json({ ok: true, applied: 'schedule_tracker.csv', path: savedPath });
+    csv.writeCsv(DATA('schedule_tracker.csv'), normalized, HEADERS.schedule);
+    return res.json({ ok: true, applied: 'schedule_tracker.csv', count: normalized.length });
   }
 
   res.json({ ok: true, applied: null, path: savedPath, ext });

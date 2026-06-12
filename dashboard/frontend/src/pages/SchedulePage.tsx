@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Upload, CheckCheck, RefreshCw, Plus, Trash2, Save } from 'lucide-react';
-import { api, get, post, put, Job } from '../api';
+import { Upload, Download, CheckCheck, RefreshCw, Plus, Trash2, Save } from 'lucide-react';
+import { api, get, post, put, getApiBase, getToken, Job } from '../api';
 import LogViewer from '../components/LogViewer';
 
 interface ScheduleRow {
@@ -99,6 +99,25 @@ const SchedulePage: React.FC = () => {
     } catch (e: any) { setMessage(`Gagal menyimpan: ${e.message}`); }
   };
 
+  const downloadTemplate = async () => {
+    setMessage('');
+    try {
+      const token = getToken();
+      const res = await fetch(`${getApiBase()}/api/schedule/template`, {
+        headers: token ? { 'x-dashboard-token': token } : {},
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'template_jadwal_email.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      setMessage('Template ter-download. Isi kolom sender_email, recipient_email, template_key, dan scheduled_at — kolom lain boleh dikosongkan.');
+    } catch (e: any) { setMessage(`Gagal download template: ${e.message}`); }
+  };
+
   const onUpload = async (file: File) => {
     setMessage('');
     const fd = new FormData();
@@ -111,7 +130,7 @@ const SchedulePage: React.FC = () => {
     try {
       const res = await api('/api/upload', { method: 'POST', body: fd });
       if (isCsv) {
-        setMessage('Jadwal diganti. Klik Validate untuk memeriksa.');
+        setMessage(`Upload berhasil — ${res.count} email masuk jadwal (queue_id dibuat otomatis). Klik Validate untuk cek final.`);
         load();
       } else {
         setUploadedXlsx(res.path);
@@ -170,6 +189,9 @@ const SchedulePage: React.FC = () => {
           />
           <button className="btn btn-outline" onClick={() => fileRef.current?.click()}>
             <Upload size={16} /> Upload Excel / CSV
+          </button>
+          <button className="btn btn-outline" onClick={downloadTemplate}>
+            <Download size={16} /> Download Template CSV
           </button>
           <button className="btn btn-outline" onClick={runValidate}>
             <CheckCheck size={16} /> Validate
