@@ -1,4 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { 
+  LayoutDashboard, 
+  Users, 
+  FileText, 
+  Activity, 
+  Play, 
+  Mail, 
+  CalendarClock, 
+  Settings,
+  Inbox
+} from 'lucide-react';
 
 const App = () => {
   const [stats, setStats] = useState({ total_senders: 0, total_schedules: 0, total_templates: 0 });
@@ -45,65 +56,108 @@ const App = () => {
 
   return (
     <div className="app-container">
-      <div className="sidebar">
-        <h2 style={{ marginBottom: '2rem', color: '#2563eb' }}>Gmail Scheduler</h2>
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="brand">
+          <Inbox size={24} strokeWidth={2.5} />
+          <span>AutoMail</span>
+        </div>
         <nav>
-          <div style={{ padding: '0.75rem 0', fontWeight: '500', cursor: 'pointer' }}>Dashboard</div>
-          <div style={{ padding: '0.75rem 0', color: '#64748b', cursor: 'pointer' }}>Accounts</div>
-          <div style={{ padding: '0.75rem 0', color: '#64748b', cursor: 'pointer' }}>Templates</div>
-          <div style={{ padding: '0.75rem 0', color: '#64748b', cursor: 'pointer' }}>Logs</div>
+          <div className="nav-item active">
+            <LayoutDashboard size={18} />
+            <span>Overview</span>
+          </div>
+          <div className="nav-item">
+            <Users size={18} />
+            <span>Accounts</span>
+          </div>
+          <div className="nav-item">
+            <FileText size={18} />
+            <span>Templates</span>
+          </div>
+          <div className="nav-item">
+            <Activity size={18} />
+            <span>Activity Logs</span>
+          </div>
+          <div style={{ marginTop: 'auto' }}>
+            <div className="nav-item">
+              <Settings size={18} />
+              <span>Settings</span>
+            </div>
+          </div>
         </nav>
-      </div>
+      </aside>
 
-      <div className="main-content">
-        <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
+      {/* Main Content */}
+      <main className="main-content">
+        <header className="header">
           <h1>Dashboard Overview</h1>
-          <button className="btn btn-primary" onClick={runSchedule} disabled={loading}>
-            {loading ? 'Running...' : 'Run Automation'}
+          <button className="btn" onClick={runSchedule} disabled={loading}>
+            <Play size={16} fill={loading ? "none" : "currentColor"} />
+            {loading ? 'RUNNING...' : 'RUN AUTOMATION'}
           </button>
         </header>
 
+        {/* Stats Grid */}
         <div className="stats-grid">
-          <div className="card">
-            <h3 style={{ color: '#64748b', fontSize: '0.875rem' }}>Total Accounts</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>{stats.total_senders}</p>
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-title">Total Accounts</span>
+              <Mail size={20} className="text-muted" />
+            </div>
+            <div className="stat-value">{stats.total_senders}</div>
           </div>
-          <div className="card">
-            <h3 style={{ color: '#64748b', fontSize: '0.875rem' }}>Active Schedules</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>{stats.total_schedules}</p>
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-title">Active Schedules</span>
+              <CalendarClock size={20} className="text-muted" />
+            </div>
+            <div className="stat-value">{stats.total_schedules}</div>
           </div>
-          <div className="card">
-            <h3 style={{ color: '#64748b', fontSize: '0.875rem' }}>Templates</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>{stats.total_templates}</p>
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-title">Templates</span>
+              <FileText size={20} className="text-muted" />
+            </div>
+            <div className="stat-value">{stats.total_templates}</div>
           </div>
         </div>
 
-        <div className="card">
-          <h2 style={{ marginBottom: '1rem' }}>Sender Accounts</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        {/* Data Table */}
+        <div className="table-section">
+          <h2>Sender Accounts</h2>
+          <table>
             <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '1rem' }}>Email</th>
-                <th style={{ padding: '1rem' }}>Profile</th>
-                <th style={{ padding: '1rem' }}>Status</th>
+              <tr>
+                <th>Email Address</th>
+                <th>Profile Directory</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {senders.map((sender: any, i: number) => (
-                <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '1rem' }}>{sender.email}</td>
-                  <td style={{ padding: '1rem' }}>{sender.profile_dir}</td>
-                  <td style={{ padding: '1rem' }}>
+                <tr key={i}>
+                  <td style={{ fontWeight: 500 }}>{sender.email}</td>
+                  <td className="text-muted">{sender.profile_dir}</td>
+                  <td>
                     <span className={`status-badge ${sender.enabled === 'true' ? 'status-active' : 'status-inactive'}`}>
+                      <span className="status-dot"></span>
                       {sender.enabled === 'true' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                 </tr>
               ))}
+              {senders.length === 0 && (
+                <tr>
+                  <td colSpan={3} style={{ textAlign: 'center', padding: '3rem 0', color: '#a3a3a3' }}>
+                    No sender accounts found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
