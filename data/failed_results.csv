@@ -1,1 +1,132 @@
 queue_id,sender_email,recipient_email,subject,scheduled_at,error_code,error_message,failed_at,screenshot_path
+Q-20260610-000001,founders@contactsgetredditor.com,test1@example.com,Contoh Subject 1,2026-06-10 21:00,ERROR,Sender account not found or disabled: founders@contactsgetredditor.com,2026-06-12T20:13:29.281Z,
+Q-20260614-000001,dnw022003@gmail.com,test-tujuan@gmail.com,,2026-06-14 21:00,ERROR,"browserType.launchPersistentContext: Target page, context or browser has been closed
+Browser logs:
+
+<launching> C:\Users\Windows\AppData\Local\ms-playwright\chromium-1223\chrome-win64\chrome.exe --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --no-sandbox --no-sandbox --disable-setuid-sandbox --user-data-dir=D:\gmail-scheduler\profiles\dnw022003@gmail.com --remote-debugging-pipe about:blank
+<launched> pid=17668
+[pid=17668][err] [17668:23128:0613/032752.346:ERROR:chrome\browser\downgrade\downgrade_utils.cc:36] D:\gmail-scheduler\profiles\dnw022003@gmail.com\ShaderCache -> D:\gmail-scheduler\profiles\dnw022003@gmail.com\dnw022003@gmail.com.CHROME_DELETE\ShaderCache: Access is denied. (0x5)
+[pid=17668][err] [17668:23128:0613/032752.366:ERROR:chrome\browser\downgrade\downgrade_utils.cc:36] D:\gmail-scheduler\profiles\dnw022003@gmail.com\Snapshots\148.0.7778.96 -> D:\gmail-scheduler\profiles\dnw022003@gmail.com\Snapshots.CHROME_DELETE\148.0.7778.96: The system cannot find the path specified. (0x3)
+Call log:
+[2m  - <launching> C:\Users\Windows\AppData\Local\ms-playwright\chromium-1223\chrome-win64\chrome.exe --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --no-sandbox --no-sandbox --disable-setuid-sandbox --user-data-dir=D:\gmail-scheduler\profiles\dnw022003@gmail.com --remote-debugging-pipe about:blank[22m
+[2m  - <launched> pid=17668[22m
+[2m  - [pid=17668][err] [17668:23128:0613/032752.346:ERROR:chrome\browser\downgrade\downgrade_utils.cc:36] D:\gmail-scheduler\profiles\dnw022003@gmail.com\ShaderCache -> D:\gmail-scheduler\profiles\dnw022003@gmail.com\dnw022003@gmail.com.CHROME_DELETE\ShaderCache: Access is denied. (0x5)[22m
+[2m  - [pid=17668][err] [17668:23128:0613/032752.366:ERROR:chrome\browser\downgrade\downgrade_utils.cc:36] D:\gmail-scheduler\profiles\dnw022003@gmail.com\Snapshots\148.0.7778.96 -> D:\gmail-scheduler\profiles\dnw022003@gmail.com\Snapshots.CHROME_DELETE\148.0.7778.96: The system cannot find the path specified. (0x3)[22m
+[2m  - [pid=17668] <gracefully close start>[22m
+[2m  - [pid=17668] <kill>[22m
+[2m  - [pid=17668] <will force kill>[22m
+[2m  - [pid=17668] taskkill stderr: ERROR: The process ""17668"" not found.[22m
+[2m  - [pid=17668] <process did exit: exitCode=33, signal=null>[22m
+[2m  - [pid=17668] starting temporary directories cleanup[22m
+[2m  - [pid=17668] finished temporary directories cleanup[22m
+[2m  - [pid=17668] <gracefully close end>[22m
+",2026-06-12T20:27:52.641Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,"locator.click: Target page, context or browser has been closed
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Compose' })[22m
+",2026-06-12T20:43:45.954Z,
+Q-20260613-000002,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,2026-06-13 03:50,ERROR,Cannot read properties of null (reading 'screenshot'),2026-06-12T20:43:51.126Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:45:33.173Z,
+Q-20260613-000002,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,2026-06-13 03:50,ERROR,"page.screenshot: Target page, context or browser has been closed
+Call log:
+[2m  - taking page screenshot[22m
+",2026-06-12T20:45:41.371Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:46:35.313Z,
+Q-20260613-000002,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,2026-06-13 03:50,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:46:52.817Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:47:51.883Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:50:59.829Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,"locator.fill: Error: Element is not an <input>, <textarea>, <select> or [contenteditable] and does not have a role allowing [aria-readonly]
+Call log:
+[2m  - waiting for locator('input[aria-label=""To recipients""], [aria-label=""To""] input, [aria-label=""Kepada""] input, input[aria-label=""Kepada""], [name=""to""], [aria-label*=""To"" i], [aria-label*=""Kepada"" i]').first()[22m
+[2m    - locator resolved to <span id="":qj"" role=""link"" tabindex=""1"" class=""gO aQY"" data-tooltip=""Pilih kontak"" aria-label=""Kepada - Pilih kontak"">Kepada</span>[22m
+[2m    - fill(""novenoow@gmail.com"")[22m
+[2m  - attempting fill action[22m
+[2m    - waiting for element to be visible, enabled and editable[22m
+",2026-06-12T20:51:16.704Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,"locator.fill: Error: Element is not an <input>, <textarea>, <select> or [contenteditable] and does not have a role allowing [aria-readonly]
+Call log:
+[2m  - waiting for locator('input[aria-label=""To recipients""], [aria-label=""To""] input, [aria-label=""Kepada""] input, input[aria-label=""Kepada""], [name=""to""], input[aria-label*=""To"" i], input[aria-label*=""Kepada"" i], [role=""combobox""][aria-label*=""To"" i], [role=""combobox""][aria-label*=""Kepada"" i]').first()[22m
+[2m    - locator resolved to <div id="":qw"" name=""to"" class=""anm"" aria-label=""Kepada"">…</div>[22m
+[2m    - fill(""novenoow@gmail.com"")[22m
+[2m  - attempting fill action[22m
+[2m    - waiting for element to be visible, enabled and editable[22m
+",2026-06-12T20:51:36.322Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,"locator.click: Unexpected token ""="" while parsing css selector ""[role=""menuitem""]:has-text(""Schedule send""), [role=""menuitem""]:has-text(""Jadwalkan pengiriman""), text=/Schedule send|Jadwalkan pengiriman/i"". Did you mean to CSS.escape it?
+Call log:
+[2m  - waiting for [role=""menuitem""]:has-text(""Schedule send""), [role=""menuitem""]:has-text(""Jadwalkan pengiriman""), text=/Schedule send|Jadwalkan pengiriman/i >> nth=0[22m
+",2026-06-12T20:51:53.506Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,"locator.waitFor: Timeout 5000ms exceeded.
+Call log:
+[2m  - waiting for locator('text=/Schedule send|Jadwalkan pengiriman/i').first() to be visible[22m
+[2m    13 × locator resolved to hidden <div class=""J-N-Jz"">…</div>[22m
+",2026-06-12T20:52:17.248Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,"browserType.launchPersistentContext: Failed to create a ProcessSingleton for your profile directory. This usually means that the profile is already in use by another instance of Chromium.
+Call log:
+[2m  - <launching> C:\Program Files\Google\Chrome\Application\chrome.exe --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --no-sandbox --no-sandbox --disable-setuid-sandbox --disable-blink-features=AutomationControlled --user-data-dir=D:\gmail-scheduler\profiles\dnw022003@gmail.com --remote-debugging-pipe about:blank[22m
+[2m  - <launched> pid=24136[22m
+[2m  - [pid=24136][err] [24136:19484:0613/035253.542:ERROR:chrome\browser\process_singleton_win.cc:410] Lock file can not be created! Error code: 32[22m
+[2m  - [pid=24136][err] [24136:19484:0613/035253.542:ERROR:chrome\app\chrome_main_delegate.cc:519] Failed to create a ProcessSingleton for your profile directory. This means that running multiple instances would start multiple browser processes rather than opening a new window in the existing process. Aborting now to avoid profile corruption.[22m
+[2m  - [pid=24136] <gracefully close start>[22m
+[2m  - [pid=24136] <kill>[22m
+[2m  - [pid=24136] <will force kill>[22m
+[2m  - [pid=24136] taskkill stderr: ERROR: The process ""24136"" not found.[22m
+[2m  - [pid=24136] <process did exit: exitCode=21, signal=null>[22m
+[2m  - [pid=24136] starting temporary directories cleanup[22m
+[2m  - [pid=24136] finished temporary directories cleanup[22m
+[2m  - [pid=24136] <gracefully close end>[22m
+",2026-06-12T20:52:53.676Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,"locator.fill: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('.Kj-JD-Jz input').first()[22m
+",2026-06-12T20:53:07.682Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:53:24.800Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:53:40.036Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:56:39.603Z,
+Q-20260613-000002,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,2026-06-13 03:50,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:56:43.385Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:58:55.149Z,
+Q-20260613-000002,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,2026-06-13 03:50,ERROR,GMAIL_NOT_LOADED,2026-06-12T20:58:59.149Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,Cannot read properties of null (reading 'screenshot'),2026-06-12T21:01:46.032Z,
+Q-20260613-000002,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,2026-06-13 03:50,ERROR,Cannot read properties of null (reading 'screenshot'),2026-06-12T21:01:57.444Z,
+Q-20260611-000001,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-11 12:02,ERROR,"locator.fill: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('[role=""dialog""] input, input[aria-label*=""Date"" i], input[aria-label*=""Tanggal"" i], .Kj-JD-Jz input').first()[22m
+[2m    - locator resolved to <input id="":u7"" size=""0"" type=""text"" placeholder="""" class=""agP aFx"" role=""combobox"" aria-owns="":u8"" autocorrect=""off"" autocomplete=""off"" spellcheck=""false"" aria-controls="":u8"" autocapitalize=""off"" peoplekit-id=""BbVjBd"" aria-expanded=""false"" aria-haspopup=""listbox"" aria-autocomplete=""list"" aria-label=""Kepada penerima"" aria-description=""1 dipilih""/>[22m
+[2m    - fill(""Jun 11, 2026"")[22m
+[2m  - attempting fill action[22m
+[2m    2 × waiting for element to be visible, enabled and editable[22m
+[2m      - element is not visible[22m
+[2m    - retrying fill action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and editable[22m
+[2m      - element is not visible[22m
+[2m    - retrying fill action[22m
+[2m      - waiting 100ms[22m
+[2m    16 × waiting for element to be visible, enabled and editable[22m
+[2m       - element is not visible[22m
+[2m     - retrying fill action[22m
+[2m       - waiting 500ms[22m
+[2m    - waiting for element to be visible, enabled and editable[22m
+[2m  - element was detached from the DOM, retrying[22m
+",2026-06-12T21:03:08.442Z,
+Q-20260613-000002,dnw022003@gmail.com,khususfilmkuuu@gmail.com,,2026-06-13 03:50,ERROR,"locator.fill: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('[role=""dialog""] input, input[aria-label*=""Date"" i], input[aria-label*=""Tanggal"" i], .Kj-JD-Jz input').first()[22m
+[2m    - locator resolved to <input id="":u7"" size=""0"" type=""text"" placeholder="""" class=""agP aFx"" role=""combobox"" aria-owns="":u8"" autocorrect=""off"" autocomplete=""off"" spellcheck=""false"" aria-controls="":u8"" autocapitalize=""off"" peoplekit-id=""BbVjBd"" aria-expanded=""false"" aria-haspopup=""listbox"" aria-autocomplete=""list"" aria-label=""Kepada penerima"" aria-description=""1 dipilih""/>[22m
+[2m    - fill(""Jun 13, 2026"")[22m
+[2m  - attempting fill action[22m
+[2m    2 × waiting for element to be visible, enabled and editable[22m
+[2m      - element is not visible[22m
+[2m    - retrying fill action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and editable[22m
+[2m      - element is not visible[22m
+[2m    - retrying fill action[22m
+[2m      - waiting 100ms[22m
+[2m    59 × waiting for element to be visible, enabled and editable[22m
+[2m       - element is not visible[22m
+[2m     - retrying fill action[22m
+[2m       - waiting 500ms[22m
+",2026-06-12T21:03:45.324Z,
+Q-20260613-000001,dnw022003@gmail.com,novenoow@gmai.com,,2026-06-13 04:10,ERROR,dateHelper.nowJkt is not a function,2026-06-12T21:04:42.171Z,
+Q-20260613-000001,dnw022003@gmail.com,novenoow@gmai.com,,2026-06-13 04:10,ERROR,dateHelper.nowJkt is not a function,2026-06-12T21:04:45.942Z,
+Q-20260613-000001,dnw022003@gmail.com,novenoow@gmai.com,,2026-06-13 04:10,ERROR,dateHelper.nowJkt is not a function,2026-06-12T21:04:50.690Z,

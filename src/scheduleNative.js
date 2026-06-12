@@ -71,6 +71,19 @@ async function run() {
       const body = dataLoader.resolveBody(row, templates);
       const scheduledAt = dateHelper.parseJktDateTime(row.scheduled_at);
 
+      // -------------------------------------------------------
+      // Skip rows where the scheduled time is already in the past.
+      // Gmail does not allow scheduling in the past, so we simply
+      // log and continue. This also prevents unnecessary Playwright
+      // work and confusing "SUCCESS" logs for dates that cannot be
+      // processed.
+      // -------------------------------------------------------
+      const now = dateHelper.nowJkt(); // returns dayjs in JKT timezone
+      if (scheduledAt.isBefore(now)) {
+        console.log(`[${row.queue_id}] Skipping – scheduled time (${row.scheduled_at}) is in the past.`);
+        continue;
+      }
+
       console.log(`\n[${row.queue_id}] Sender: ${row.sender_email} -> ${row.recipient_email}`);
       console.log(`Subject: ${subject}`);
       console.log(`Scheduled At (JKT): ${row.scheduled_at}`);

@@ -11,7 +11,10 @@ dayjs.extend(timezone);
 // Set default timezone
 dayjs.tz.setDefault(config.DEFAULT_TIMEZONE);
 
-function parseJktDateTime(value) {
+function nowJkt() {
+  // Returns current time in the default JKT timezone
+  return dayjs().tz(config.DEFAULT_TIMEZONE);
+}
   // Assuming value is YYYY-MM-DD HH:mm and in JKT timezone
   return dayjs.tz(value, 'YYYY-MM-DD HH:mm', config.DEFAULT_TIMEZONE);
 }

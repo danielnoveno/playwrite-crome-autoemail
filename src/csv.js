@@ -12,6 +12,7 @@ function readCsv(filePath) {
     columns: true,
     skip_empty_lines: true,
     trim: true,
+    record_delimiter: ["\r\n", "\n"],
   });
 }
 

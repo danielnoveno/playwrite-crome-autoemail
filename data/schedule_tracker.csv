@@ -1,1 +1,3 @@
 queue_id,sender_email,recipient_email,subject,template_key,scheduled_at,category,company_name,website,day_name,per_sender_sequence,notes
+Q-20260613-000001,dnw022003@gmail.com,novenoow@gmai.com,,T2,2026-06-13 04:10,,,,Saturday,1,
+Q-20260613-000002,dnw022003@gmail.com,novenoow@gmail.com,,T2,2026-06-13 04:09,,,,Saturday,2,
