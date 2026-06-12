@@ -15,6 +15,8 @@ function nowJkt() {
   // Returns current time in the default JKT timezone
   return dayjs().tz(config.DEFAULT_TIMEZONE);
 }
+
+function parseJktDateTime(value) {
   // Assuming value is YYYY-MM-DD HH:mm and in JKT timezone
   return dayjs.tz(value, 'YYYY-MM-DD HH:mm', config.DEFAULT_TIMEZONE);
 }
@@ -65,6 +67,7 @@ function sortRowsByScheduledAt(rows) {
 }
 
 module.exports = {
+  nowJkt,
   parseJktDateTime,
   formatForGmailCustomDate,
   formatForGmailCustomTime,
