@@ -2,7 +2,7 @@ const path = require('path');
 const config = require('./config');
 
 async function openGmail(page) {
-  await page.goto(config.GMAIL_URL, { waitUntil: 'networkidle' });
+  await page.goto(config.GMAIL_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
 }
 
 async function ensureLoggedIn(page) {
@@ -97,7 +97,7 @@ async function confirmSchedule(page) {
 
 async function verifyScheduled(page, subject, recipient) {
   // Go to "Scheduled" label
-  await page.goto(config.GMAIL_URL.replace('#inbox', '#scheduled'), { waitUntil: 'networkidle' });
+  await page.goto(config.GMAIL_URL.replace('#inbox', '#scheduled'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   
   // Check if the email is in the list
   const list = page.locator('div[role="main"]');

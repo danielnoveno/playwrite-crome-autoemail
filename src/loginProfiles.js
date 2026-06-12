@@ -34,13 +34,19 @@ async function run() {
     console.log(`Profile directory: ${sender.profile_dir}`);
     
     const context = await chromium.launchPersistentContext(path.resolve(sender.profile_dir), {
-      headless: false, // Always headful for manual login
+      headless: false,
+      channel: 'chrome', // pakai Chrome asli, bukan Chromium bawaan Playwright
       slowMo: config.SLOW_MO_MS,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-blink-features=AutomationControlled',
+      ],
     });
 
     const page = await context.newPage();
-    await gmailUi.openGmail(page);
+    // Buka halaman login Gmail langsung agar user bisa login
+    await page.goto('https://mail.google.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
     
     console.log(`Please login manually if required. Waiting for ${argv.minutes} minutes...`);
     
