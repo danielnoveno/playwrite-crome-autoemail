@@ -1,13 +1,12 @@
 // ---------------------------------------------------------------------------
 // Gmail Scheduler — Electron Desktop App (Main Process)
 // ---------------------------------------------------------------------------
-// Starts the Express backend as a child process, waits for it to be ready,
+// Starts the Express backend in the main process, waits for it to be ready,
 // then opens the dashboard in a native Electron window with system-tray
 // support. Closing the window minimises to tray; right-click tray to quit.
 // ---------------------------------------------------------------------------
 
 const { app, BrowserWindow, Tray, Menu, shell, nativeImage, dialog } = require('electron');
-const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
@@ -77,7 +76,6 @@ const RUNTIME_DIRS = resolveRuntimeDirs();
 let mainWindow = null;
 let splashWindow = null;
 let tray = null;
-let serverProcess = null;
 let isQuitting = false;
 
 // Prevent multiple instances
@@ -242,47 +240,18 @@ function startServer() {
   return new Promise((resolve, reject) => {
     console.log('[desktop] Starting Express server …');
 
-    // In a packaged app process.execPath is the Electron exe, not node.
-    // ELECTRON_RUN_AS_NODE makes that same binary behave as a plain Node
-    // runtime so it can run server.js (and still read files from app.asar).
-    // cwd must be a REAL directory. When packaged, ROOT points inside
-    // app.asar (an archive, not a real folder) so spawn() fails with ENOENT.
-    // Use resourcesPath (a real dir next to the exe) in that case.
-    const serverCwd = app.isPackaged ? process.resourcesPath : ROOT;
-
-    serverProcess = spawn(
-      process.execPath,
-      [path.join(ROOT, 'server.js')],
-      {
-        cwd: serverCwd,
-        env: {
-          ...process.env,
-          PORT: String(PORT),
-          ELECTRON: '1',
-          ELECTRON_RUN_AS_NODE: '1',
-          RESOURCES_PATH: process.resourcesPath,
-          ...RUNTIME_DIRS,
-        },
-        stdio: ['ignore', 'pipe', 'pipe'],
-        windowsHide: true,
-      }
-    );
-
-    serverProcess.stdout.on('data', (d) => console.log(`[server] ${d.toString().trim()}`));
-    serverProcess.stderr.on('data', (d) => console.error(`[server] ${d.toString().trim()}`));
-
-    serverProcess.on('error', (err) => {
+    try {
+      Object.assign(process.env, {
+        PORT: String(PORT),
+        ELECTRON: '1',
+        RESOURCES_PATH: process.resourcesPath,
+        ...RUNTIME_DIRS,
+      });
+      require(path.join(ROOT, 'server.js'));
+    } catch (err) {
       reject(new Error(`Gagal menjalankan server: ${err.message}`));
-    });
-
-    serverProcess.on('exit', (code) => {
-      if (!isQuitting) {
-        console.error(`[desktop] Server exited unexpectedly (code ${code})`);
-        dialog.showErrorBox(APP_NAME, `Server berhenti tiba-tiba (exit code ${code}).\nAplikasi akan ditutup.`);
-        isQuitting = true;
-        app.quit();
-      }
-    });
+      return;
+    }
 
     // Poll /api/health until the server is ready
     let attempts = 0;
@@ -313,21 +282,8 @@ function startServer() {
 }
 
 function stopServer() {
-  if (!serverProcess) return;
-  console.log('[desktop] Stopping server …');
-
-  // On Windows, kill the entire process tree so spawned Chrome instances
-  // are also terminated.
-  if (process.platform === 'win32') {
-    try {
-      spawn('taskkill', ['/pid', String(serverProcess.pid), '/t', '/f'], {
-        windowsHide: true,
-      });
-    } catch (_) { /* best-effort */ }
-  } else {
-    serverProcess.kill('SIGTERM');
-  }
-  serverProcess = null;
+  // The API now runs in-process with Electron, so there is no child server
+  // to terminate here.
 }
 
 // ---------------------------------------------------------------------------

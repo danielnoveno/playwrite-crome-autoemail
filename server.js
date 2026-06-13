@@ -399,7 +399,8 @@ app.post('/api/jobs/convert', wrap((req, res) => {
   if (!resolved.startsWith(config.DATA_DIR)) {
     return res.status(400).json({ error: 'input must be inside the data directory' });
   }
-  const args = [`--input=${resolved}`, '--output=data/schedule_tracker.csv'];
+  const output = path.join(config.DATA_DIR, 'schedule_tracker.csv');
+  const args = [`--input=${resolved}`, `--output=${output}`];
   if (startDate) args.push(`--start-date=${startDate}`);
   args.push(`--start-time=${startTime || '21:00'}`);
   args.push(`--gap-minutes=${gapMinutes || 7}`);
