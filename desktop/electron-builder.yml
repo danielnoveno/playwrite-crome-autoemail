@@ -11,8 +11,7 @@ productName: Gmail Scheduler
 directories:
   output: dist-desktop
 
-# Entry point for Electron
-main: desktop/main.js
+# (entry point comes from package.json "main": desktop/main.js)
 
 # Files to include in the ASAR bundle
 files:
@@ -43,7 +42,7 @@ win:
       arch: [x64]
     - target: nsis
       arch: [x64]
-  icon: desktop/icon.ico
+  # icon: desktop/icon.ico   # add a 256x256 .ico here later for custom branding
 
 nsis:
   oneClick: false

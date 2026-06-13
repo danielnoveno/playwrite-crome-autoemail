@@ -22,6 +22,56 @@ const SPLASH_PATH = path.join(__dirname, 'splash.html');
 const APP_NAME = 'Gmail Scheduler';
 
 // ---------------------------------------------------------------------------
+// Writable runtime directories.
+//   - Dev: everything lives in the project folder (./data, ./profiles, …).
+//   - Packaged: app.asar is read-only, so CSVs / Chrome profiles / logs go
+//     into the per-user app-data folder. Seed data shipped in resources/data
+//     is copied there on first run.
+// These paths are passed to server.js via env; config.js already honours them.
+// ---------------------------------------------------------------------------
+function resolveRuntimeDirs() {
+  if (!app.isPackaged) {
+    return {
+      DATA_DIR: path.join(ROOT, 'data'),
+      PROFILES_DIR: path.join(ROOT, 'profiles'),
+      SCREENSHOT_DIR: path.join(ROOT, 'screenshots'),
+      LOGS_DIR: path.join(ROOT, 'logs'),
+    };
+  }
+  const base = app.getPath('userData');
+  const dirs = {
+    DATA_DIR: path.join(base, 'data'),
+    PROFILES_DIR: path.join(base, 'profiles'),
+    SCREENSHOT_DIR: path.join(base, 'screenshots'),
+    LOGS_DIR: path.join(base, 'logs'),
+  };
+
+  // First-run seed: copy bundled CSVs into the writable data dir.
+  // The bundled data lives in resources/data (electron-builder extraResources)
+  // or in the app folder's own data dir (@electron/packager) — try both.
+  if (!fs.existsSync(dirs.DATA_DIR)) {
+    fs.mkdirSync(dirs.DATA_DIR, { recursive: true });
+    const seedCandidates = [
+      path.join(process.resourcesPath, 'data'),
+      path.join(ROOT, 'data'),
+    ];
+    const seedDir = seedCandidates.find(d => fs.existsSync(d));
+    if (seedDir) {
+      for (const file of fs.readdirSync(seedDir)) {
+        try { fs.copyFileSync(path.join(seedDir, file), path.join(dirs.DATA_DIR, file)); }
+        catch (_) { /* skip directories / locked files */ }
+      }
+    }
+  }
+  for (const dir of Object.values(dirs)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return dirs;
+}
+
+const RUNTIME_DIRS = resolveRuntimeDirs();
+
+// ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 let mainWindow = null;
@@ -192,12 +242,26 @@ function startServer() {
   return new Promise((resolve, reject) => {
     console.log('[desktop] Starting Express server …');
 
+    // In a packaged app process.execPath is the Electron exe, not node.
+    // ELECTRON_RUN_AS_NODE makes that same binary behave as a plain Node
+    // runtime so it can run server.js (and still read files from app.asar).
+    // cwd must be a REAL directory. When packaged, ROOT points inside
+    // app.asar (an archive, not a real folder) so spawn() fails with ENOENT.
+    // Use resourcesPath (a real dir next to the exe) in that case.
+    const serverCwd = app.isPackaged ? process.resourcesPath : ROOT;
+
     serverProcess = spawn(
-      process.execPath,                         // use the same node binary
+      process.execPath,
       [path.join(ROOT, 'server.js')],
       {
-        cwd: ROOT,
-        env: { ...process.env, PORT: String(PORT), ELECTRON: '1' },
+        cwd: serverCwd,
+        env: {
+          ...process.env,
+          PORT: String(PORT),
+          ELECTRON: '1',
+          ELECTRON_RUN_AS_NODE: '1',
+          ...RUNTIME_DIRS,
+        },
         stdio: ['ignore', 'pipe', 'pipe'],
         windowsHide: true,
       }

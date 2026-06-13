@@ -2,7 +2,8 @@
   "name": "gmail-scheduler",
   "version": "1.0.0",
   "description": "Native Gmail Schedule Send using Playwright",
-  "main": "src/scheduleNative.js",
+  "author": "GetRedditor",
+  "main": "desktop/main.js",
   "scripts": {
     "login": "node src/loginProfiles.js",
     "schedule": "node src/scheduleNative.js",
@@ -11,8 +12,10 @@
     "convert": "node scripts/excelToScheduleCsv.js --input=data/schedule_tracker.xlsx --output=data/schedule_tracker.csv --start-time=21:00 --gap-minutes=7",
     "validate": "node scripts/validateSchedule.js",
     "start": "node server.js",
+    "ui:build": "cd dashboard/frontend && npm run build",
     "desktop": "electron desktop/main.js",
-    "desktop:build": "electron-builder --config desktop/electron-builder.yml"
+    "desktop:pack": "npm run ui:build && node desktop/pack.js",
+    "desktop:build": "npm run ui:build && electron-builder --config desktop/electron-builder.yml"
   },
   "dependencies": {
     "body-parser": "^2.2.2",
@@ -29,37 +32,8 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "electron": "^35.0.0",
-    "electron-builder": "^26.0.0"
-  },
-  "build": {
-    "appId": "com.gmail-scheduler.desktop",
-    "productName": "Gmail Scheduler",
-    "directories": {
-      "output": "dist-desktop"
-    },
-    "files": [
-      "desktop/**/*",
-      "server.js",
-      "server/**/*",
-      "src/**/*",
-      "scripts/**/*",
-      "data/**/*",
-      "dashboard/frontend/dist/**/*",
-      "package.json",
-      ".env"
-    ],
-    "extraResources": [
-      { "from": "data", "to": "data" }
-    ],
-    "win": {
-      "target": ["nsis", "portable"],
-      "icon": "desktop/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "desktop/icon.ico"
-    }
+    "@electron/packager": "^20.0.1",
+    "electron": "^31.7.7",
+    "electron-builder": "24.13.3"
   }
 }
