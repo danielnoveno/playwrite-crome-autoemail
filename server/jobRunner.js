@@ -100,9 +100,17 @@ function startJob(type, script, args, label) {
 
   let child;
   try {
+    // When the server runs inside Electron (dev `npm run desktop` or the
+    // packaged .exe), process.execPath is the Electron binary. Without this
+    // flag it would launch a second GUI instead of running the script as
+    // Node, so force Node behaviour. Under plain `node`, the flag is absent.
+    const childEnv = { ...process.env };
+    if (process.versions && process.versions.electron) {
+      childEnv.ELECTRON_RUN_AS_NODE = '1';
+    }
     child = spawn(process.execPath, [path.join(ROOT, script), ...args], {
       cwd: JOB_CWD,
-      env: process.env,
+      env: childEnv,
       windowsHide: true,
     });
   } catch (err) {

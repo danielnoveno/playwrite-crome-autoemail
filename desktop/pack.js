@@ -40,7 +40,8 @@ async function main() {
     out: path.join(ROOT, 'dist-desktop'),
     overwrite: true,
     prune: true,                 // drop devDependencies (electron, builder, …)
-    asar: true,                  // bundle app source into app.asar
+    asar: false,                 // keep plain files: Playwright + child-process
+                                 // jobs need real paths, not a virtual asar
     ignore: IGNORE,
     appVersion: require('../package.json').version,
     appCopyright: 'GetRedditor',
