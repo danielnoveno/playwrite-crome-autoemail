@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-desktop/
 .env
 profiles/
 screenshots/
@@ -8,3 +9,4 @@ data/uploads/
 data/backups/
 data/schedule_tracker.xlsx
 .vite/
+

@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# electron-builder configuration — Gmail Scheduler Desktop
+# ---------------------------------------------------------------------------
+# Run:  npm run desktop:build
+# Output lands in dist-desktop/
+# ---------------------------------------------------------------------------
+
+appId: com.gmail-scheduler.desktop
+productName: Gmail Scheduler
+
+directories:
+  output: dist-desktop
+
+# Entry point for Electron
+main: desktop/main.js
+
+# Files to include in the ASAR bundle
+files:
+  - desktop/**/*
+  - server.js
+  - "server/**/*"
+  - "src/**/*"
+  - "scripts/**/*"
+  - "dashboard/frontend/dist/**/*"
+  - package.json
+  - .env
+  # Exclude heavy/unnecessary files
+  - "!**/node_modules/.cache"
+  - "!**/.git"
+  - "!**/screenshots"
+  - "!**/logs"
+
+# Data directory is placed alongside the .exe (not inside ASAR)
+# so the CSV files can be read/written at runtime.
+extraResources:
+  - from: data
+    to: data
+    filter: ["**/*"]
+
+win:
+  target:
+    - target: portable
+      arch: [x64]
+    - target: nsis
+      arch: [x64]
+  icon: desktop/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Gmail Scheduler
+
+portable:
+  artifactName: "Gmail-Scheduler-Portable-${version}.exe"
