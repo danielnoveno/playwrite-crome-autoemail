@@ -1,10 +1,1 @@
 queue_id,sender_email,recipient_email,subject,scheduled_at,error_code,error_message,failed_at,screenshot_path
-Q-20260613-000002,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-13 04:09,ERROR,dateHelper.nowJkt is not a function,2026-06-12T21:16:43.382Z,
-Q-20260613-000001,dnw022003@gmail.com,novenoow@gmai.com,,2026-06-13 04:33,ERROR,"locator.waitFor: Timeout 10000ms exceeded.
-Call log:
-[2m  - waiting for locator('[role=""dialog""] input[aria-label*=""Date"" i], [role=""dialog""] input[aria-label*=""Tanggal"" i]').first() to be visible[22m
-",2026-06-12T21:19:00.398Z,
-Q-20260613-000003,dnw022003@gmail.com,novenoow@gmail.com,,2026-06-13 04:27,ERROR,"locator.waitFor: Timeout 10000ms exceeded.
-Call log:
-[2m  - waiting for locator('text=/Send scheduled for|dijadwalkan/i').first() to be visible[22m
-",2026-06-12T21:23:19.896Z,E:\Business\Freelance\playwrite-crome-autoemail\screenshots\failed_Q-20260613-000003_1781299398974.png

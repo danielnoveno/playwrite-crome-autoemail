@@ -3,7 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOGS_DIR = path.join(ROOT, 'logs');
+// In a packaged Electron app, __dirname resolves inside app.asar (a file, not a
+// real directory). Use env vars that desktop/main.js injects in that case.
+const LOGS_DIR = process.env.LOGS_DIR || path.join(ROOT, 'logs');
+const JOB_CWD = process.env.RESOURCES_PATH || ROOT;
 
 const MAX_LOG_LINES = 5000;
 const MAX_JOBS_KEPT = 50;
@@ -16,7 +19,19 @@ const jobs = new Map();
 let seq = 0;
 
 function ensureLogsDir() {
-  if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true });
+  if (!fs.existsSync(LOGS_DIR)) {
+    try {
+      fs.mkdirSync(LOGS_DIR, { recursive: true });
+    } catch (err) {
+      throw new Error(
+        `Cannot create logs directory (LOGS_DIR=${LOGS_DIR}): ${err.message}`
+      );
+    }
+  } else if (!fs.statSync(LOGS_DIR).isDirectory()) {
+    throw new Error(
+      `LOGS_DIR path exists but is not a directory: ${LOGS_DIR}`
+    );
+  }
 }
 
 function runningBrowserJob() {
@@ -57,6 +72,14 @@ function startJob(type, script, args, label) {
   }
 
   ensureLogsDir();
+  // Validate critical paths before spawning — fail early with a clear message.
+  try {
+    if (!fs.statSync(JOB_CWD).isDirectory()) {
+      throw new Error(`is not a directory`);
+    }
+  } catch (err) {
+    throw new Error(`Invalid working directory (JOB_CWD=${JOB_CWD}): ${err.message}`);
+  }
   seq += 1;
   const id = `job-${Date.now()}-${seq}`;
   const logFile = path.join(LOGS_DIR, `${id}.log`);
@@ -75,11 +98,18 @@ function startJob(type, script, args, label) {
     pid: null,
   };
 
-  const child = spawn(process.execPath, [path.join(ROOT, script), ...args], {
-    cwd: ROOT,
-    env: process.env,
-    windowsHide: true,
-  });
+  let child;
+  try {
+    child = spawn(process.execPath, [path.join(ROOT, script), ...args], {
+      cwd: JOB_CWD,
+      env: process.env,
+      windowsHide: true,
+    });
+  } catch (err) {
+    throw new Error(
+      `Failed to spawn child process (exec=${process.execPath}, script=${path.join(ROOT, script)}, cwd=${JOB_CWD}): ${err.message}`
+    );
+  }
 
   job.pid = child.pid;
   job._child = child;

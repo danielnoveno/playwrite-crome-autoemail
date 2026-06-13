@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Upload, Download, CheckCheck, RefreshCw, Plus, Trash2, Save } from 'lucide-react';
+import { Upload, Download, CheckCheck, RefreshCw, Plus, Trash2, Save, Trash } from 'lucide-react';
 import { api, get, post, put, getApiBase, getToken, Job } from '../api';
 import LogViewer from '../components/LogViewer';
 
@@ -27,6 +27,7 @@ const SchedulePage: React.FC = () => {
   const [senders, setSenders] = useState<Sender[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [dirty, setDirty] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [logJobId, setLogJobId] = useState<string | null>(null);
@@ -86,7 +87,40 @@ const SchedulePage: React.FC = () => {
   const deleteRow = (queueId: string) => {
     if (!confirm(`Hapus ${queueId} dari jadwal?`)) return;
     setRows(prev => prev.filter(r => r.queue_id !== queueId));
+    setSelected(prev => { const s = new Set(prev); s.delete(queueId); return s; });
     setDirty(true);
+  };
+
+  const toggleSelect = (queueId: string) => {
+    setSelected(prev => {
+      const s = new Set(prev);
+      s.has(queueId) ? s.delete(queueId) : s.add(queueId);
+      return s;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (shown.every(r => selected.has(r.queue_id))) {
+      setSelected(prev => { const s = new Set(prev); shown.forEach(r => s.delete(r.queue_id)); return s; });
+    } else {
+      setSelected(prev => { const s = new Set(prev); shown.forEach(r => s.add(r.queue_id)); return s; });
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`Hapus ${selected.size} jadwal terpilih dari CSV? Backup otomatis dibuat.`)) return;
+    const next = rows.filter(r => !selected.has(r.queue_id));
+    try {
+      const clean = next.map(({ status, error_code, ...rest }) => rest);
+      await put('/api/schedule', { rows: clean });
+      setRows(next);
+      setSelected(new Set());
+      setDirty(false);
+      setMessage(`${selected.size} jadwal berhasil dihapus.`);
+    } catch (e: any) {
+      setMessage(`Gagal hapus: ${e.message}`);
+    }
   };
 
   const saveAll = async () => {
@@ -266,9 +300,16 @@ const SchedulePage: React.FC = () => {
       <div className="table-section">
         <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '1rem' }}>
           <h2 style={{ margin: 0 }}>Daftar Jadwal ({rows.length})</h2>
-          <button className="btn" onClick={saveAll} disabled={!dirty}>
-            <Save size={16} /> Simpan Perubahan
-          </button>
+          <div className="form-row" style={{ margin: 0 }}>
+            {selected.size > 0 && (
+              <button className="btn btn-danger" onClick={deleteSelected}>
+                <Trash size={16} /> Hapus Terpilih ({selected.size})
+              </button>
+            )}
+            <button className="btn" onClick={saveAll} disabled={!dirty}>
+              <Save size={16} /> Simpan Perubahan
+            </button>
+          </div>
         </div>
         <div className="form-row" style={{ marginBottom: '1rem' }}>
           <input
@@ -288,6 +329,14 @@ const SchedulePage: React.FC = () => {
           <table>
             <thead>
               <tr>
+                <th style={{ width: 32 }}>
+                  <input
+                    type="checkbox"
+                    checked={shown.length > 0 && shown.every(r => selected.has(r.queue_id))}
+                    onChange={toggleSelectAll}
+                    title="Pilih semua"
+                  />
+                </th>
                 <th>Queue ID</th><th>Pengirim</th><th>Tujuan</th><th>Subject</th>
                 <th>Template</th><th>Jadwal (WIB)</th><th>Status</th><th></th>
               </tr>
@@ -296,7 +345,10 @@ const SchedulePage: React.FC = () => {
               {shown.map(r => {
                 const editable = r.status === 'PENDING';
                 return (
-                  <tr key={r.queue_id}>
+                  <tr key={r.queue_id} style={selected.has(r.queue_id) ? { background: 'rgba(99,102,241,0.08)' } : undefined}>
+                    <td style={{ width: 32 }}>
+                      <input type="checkbox" checked={selected.has(r.queue_id)} onChange={() => toggleSelect(r.queue_id)} />
+                    </td>
                     <td style={{ whiteSpace: 'nowrap' }}>{r.queue_id}</td>
                     <td>
                       {editable ? (
@@ -352,7 +404,7 @@ const SchedulePage: React.FC = () => {
                   </tr>
                 );
               })}
-              {shown.length === 0 && <tr><td colSpan={8} className="empty-cell">Belum ada jadwal.</td></tr>}
+              {shown.length === 0 && <tr><td colSpan={9} className="empty-cell">Belum ada jadwal.</td></tr>}
             </tbody>
           </table>
         </div>

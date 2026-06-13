@@ -260,6 +260,7 @@ function startServer() {
           PORT: String(PORT),
           ELECTRON: '1',
           ELECTRON_RUN_AS_NODE: '1',
+          RESOURCES_PATH: process.resourcesPath,
           ...RUNTIME_DIRS,
         },
         stdio: ['ignore', 'pipe', 'pipe'],
