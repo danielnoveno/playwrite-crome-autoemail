@@ -18,6 +18,18 @@ const BROWSER_JOB_TYPES = new Set(['schedule', 'login']);
 const jobs = new Map();
 let seq = 0;
 
+// Clean up orphaned log files left from previous server runs on startup.
+(function cleanupOldLogs() {
+  try {
+    if (!fs.existsSync(LOGS_DIR)) return;
+    for (const f of fs.readdirSync(LOGS_DIR)) {
+      if (f.endsWith('.log')) {
+        try { fs.unlinkSync(path.join(LOGS_DIR, f)); } catch (_) {}
+      }
+    }
+  } catch (_) {}
+})();
+
 function ensureLogsDir() {
   if (!fs.existsSync(LOGS_DIR)) {
     try {

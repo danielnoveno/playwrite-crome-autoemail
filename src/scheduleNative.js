@@ -41,6 +41,14 @@ async function run() {
 
   // Filter and sort
   scheduleRows = scheduleRows.filter(r => !alreadyScheduled.has(r.queue_id));
+
+  // Drop rows with missing/invalid scheduled_at before sorting
+  const invalidRows = scheduleRows.filter(r => !r.scheduled_at || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(r.scheduled_at));
+  if (invalidRows.length > 0) {
+    console.warn(`[SKIP] ${invalidRows.length} baris dilewati karena scheduled_at kosong/tidak valid:`);
+    invalidRows.forEach(r => console.warn(`  ${r.queue_id} — "${r.scheduled_at}"`));
+  }
+  scheduleRows = scheduleRows.filter(r => r.scheduled_at && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(r.scheduled_at));
   scheduleRows = dateHelper.sortRowsByScheduledAt(scheduleRows);
 
   if (argv.limit) {
@@ -65,7 +73,10 @@ async function run() {
     try {
       dataLoader.validateRow(row);
       const sender = senders.find(s => s.sender_email === row.sender_email);
-      if (!sender) throw new Error(`Sender account not found or disabled: ${row.sender_email}`);
+      if (!sender) {
+        console.log(`[${row.queue_id}] Skipping – sender disabled or not found: ${row.sender_email}`);
+        continue;
+      }
 
       const subject = dataLoader.resolveSubject(row, subjectPool);
       const body = dataLoader.resolveBody(row, templates);

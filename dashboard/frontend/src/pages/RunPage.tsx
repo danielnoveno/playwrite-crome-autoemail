@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Play, FlaskConical, ShieldAlert, Trash2 } from 'lucide-react';
+import { Play, FlaskConical, ShieldAlert, Trash2, RotateCcw, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { get, post, del, Job } from '../api';
 import LogViewer from '../components/LogViewer';
+import HelpBox from '../components/HelpBox';
+
+interface Stats {
+  schedule_total: number;
+  schedule_pending: number;
+  scheduled_success: number;
+  failed_total: number;
+}
 
 const RunPage: React.FC = () => {
   const [dryRun, setDryRun] = useState(true);
@@ -10,20 +18,27 @@ const RunPage: React.FC = () => {
   const [force, setForce] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState('');
+  const [msg, setMsg] = useState('');
 
   const loadJobs = async () => {
     try { setJobs(await get<Job[]>('/api/jobs')); } catch { /* server offline */ }
   };
 
+  const loadStats = async () => {
+    try { setStats(await get<Stats>('/api/stats')); } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     loadJobs();
-    const t = setInterval(loadJobs, 5000);
+    loadStats();
+    const t = setInterval(() => { loadJobs(); loadStats(); }, 5000);
     return () => clearInterval(t);
   }, []);
 
   const start = async (overrides: Partial<{ dryRun: boolean; limit: string; limitPerSender: string; force: boolean }> = {}) => {
-    setError('');
+    setError(''); setMsg('');
     const payload = {
       dryRun: overrides.dryRun ?? dryRun,
       limit: (overrides.limit ?? limit) ? parseInt(overrides.limit ?? limit, 10) : undefined,
@@ -31,7 +46,7 @@ const RunPage: React.FC = () => {
       force: overrides.force ?? force,
     };
     if (!payload.dryRun && !payload.limit && !payload.limitPerSender) {
-      if (!confirm('Run the FULL schedule without any limit? This opens Chrome and schedules every pending email.')) return;
+      if (!confirm(`Jalankan SEMUA ${stats?.schedule_pending ?? ''} email pending? Chrome akan terbuka dan memproses semuanya.`)) return;
     }
     try {
       const job = await post<Job>('/api/jobs/schedule', payload);
@@ -42,72 +57,152 @@ const RunPage: React.FC = () => {
     }
   };
 
+  const resume = async () => {
+    setError(''); setMsg('');
+    if (!confirm(`Lanjut dari terakhir? Sistem otomatis skip ${stats?.scheduled_success ?? 0} email yang sudah terjadwal dan proses ${stats?.schedule_pending ?? 0} sisanya.`)) return;
+    try {
+      const job = await post<Job>('/api/jobs/schedule', { dryRun: false });
+      setActiveJobId(job.id);
+      loadJobs();
+    } catch (e: any) { setError(e.message); }
+  };
+
+  const resetScheduled = async () => {
+    if (!confirm('RESET riwayat scheduled?\n\nIni akan menghapus catatan email yang sudah terjadwal — automasi akan menganggap semua baris PENDING lagi dan bisa menjadwalkan duplikat di Gmail.\n\nGunakan hanya jika benar-benar perlu mulai ulang dari nol.')) return;
+    try {
+      await del('/api/results/scheduled');
+      setMsg('Riwayat scheduled direset. Backup tersimpan di data/backups/.');
+      loadStats();
+    } catch (e: any) { setError(e.message); }
+  };
+
+  const pct = stats && stats.schedule_total > 0
+    ? Math.round((stats.scheduled_success / stats.schedule_total) * 100)
+    : 0;
+
   return (
     <div>
+      <HelpBox
+        title="Cara menjalankan automasi pengiriman email"
+        steps={[
+          { title: 'Test dulu dengan "Test Real (3)"', desc: 'klik tombol ini untuk coba 3 email pertama. Chrome akan terbuka, login otomatis, dan jadwalkan email di Gmail. Cek folder "Scheduled" di Gmail untuk konfirmasi.' },
+          { title: 'Kalau berhasil, klik "Lanjut / Resume"', desc: 'tombol ini muncul di bagian Status Pengiriman. Klik untuk proses semua email yang masih pending. Tidak perlu mulai dari awal — email yang sudah terjadwal di-skip otomatis.' },
+          { title: 'Kalau error di tengah jalan', desc: 'cukup klik "Lanjut / Resume" lagi. Sistem otomatis tahu mana yang sudah selesai dan lanjut dari yang belum.' },
+        ]}
+        tips={[
+          '"Dry Run" = hanya preview di log, tidak buka browser, tidak ada email yang dikirim.',
+          '"Force" = paksa proses ulang meski sudah pernah dijadwalkan (hati-hati: bisa duplikat di Gmail).',
+          'Chrome harus terbuka di PC ini saat run — jangan tutup Chrome yang terbuka otomatis.',
+          'Kalau muncul error LOGIN_REQUIRED, pergi ke Accounts dan klik Login untuk akun tersebut.',
+          'Kalau muncul error Timeout, biasanya Gmail lambat — coba run lagi, biasanya berhasil di percobaan berikutnya.',
+        ]}
+      />
+      {/* ── Progress bar ── */}
+      {stats && (
+        <div className="table-section" style={{ marginBottom: '1.5rem' }}>
+          <h2>Status Pengiriman</h2>
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <CheckCircle2 size={18} color="#16a34a" />
+              <span style={{ fontWeight: 600 }}>{stats.scheduled_success}</span>
+              <span className="text-muted" style={{ fontSize: '0.85rem' }}>terjadwal</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Clock size={18} color="#737373" />
+              <span style={{ fontWeight: 600 }}>{stats.schedule_pending}</span>
+              <span className="text-muted" style={{ fontSize: '0.85rem' }}>pending</span>
+            </div>
+            {stats.failed_total > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertTriangle size={18} color="#dc2626" />
+                <span style={{ fontWeight: 600, color: '#dc2626' }}>{stats.failed_total}</span>
+                <span className="text-muted" style={{ fontSize: '0.85rem' }}>gagal</span>
+              </div>
+            )}
+            <span className="text-muted" style={{ fontSize: '0.85rem', marginLeft: 'auto' }}>
+              {pct}% dari {stats.schedule_total} total
+            </span>
+          </div>
+          {/* Progress bar */}
+          <div style={{ height: 8, background: '#f5f5f5', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: '#16a34a', transition: 'width 0.5s' }} />
+          </div>
+
+          {/* Resume section */}
+          {stats.scheduled_success > 0 && stats.schedule_pending > 0 && (
+            <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 4 }}>
+              <p style={{ fontSize: '0.875rem', marginBottom: '0.75rem' }}>
+                <strong>Lanjut dari titik terakhir?</strong> {stats.scheduled_success} email sudah terjadwal akan di-skip otomatis.
+                Hanya {stats.schedule_pending} yang belum akan diproses.
+              </p>
+              <button className="btn" onClick={resume} style={{ background: '#16a34a', borderColor: '#16a34a' }}>
+                <RotateCcw size={16} /> Lanjut / Resume ({stats.schedule_pending} pending)
+              </button>
+            </div>
+          )}
+
+          {/* Team sync warning */}
+          <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: '#fefce8', border: '1px solid #fde047', fontSize: '0.8rem' }}>
+            <strong>Untuk team multi-laptop:</strong> Tiap laptop punya catatan sendiri. Kalau laptop lain sudah menjadwalkan sebagian,
+            copy file <code>scheduled_results.csv</code> dari AppData laptop itu ke laptop ini sebelum run — supaya tidak duplikat.
+          </div>
+        </div>
+      )}
+
+      {/* ── Run options ── */}
       <div className="table-section" style={{ marginBottom: '1.5rem' }}>
         <h2>Run Automation</h2>
-        <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-          The automation opens Chrome <strong>on the worker PC</strong>, composes each email and uses Gmail's native <strong>Schedule send</strong>.
-          Always start with a dry run, then a small test.
-        </p>
-
-        <div className="form-row">
+        <div className="form-row" style={{ marginBottom: '1rem' }}>
           <label className="checkbox-label">
             <input type="checkbox" checked={dryRun} onChange={e => setDryRun(e.target.checked)} />
-            Dry run (no browser, just preview)
+            Dry run (preview saja, tidak buka browser)
           </label>
           <label className="checkbox-label">
             <input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)} />
-            Force (ignore duplicate check)
+            Force (abaikan cek duplikat)
           </label>
         </div>
         <div className="form-row">
           <label className="field">
             <span>Total limit</span>
-            <input type="number" min="0" placeholder="no limit" value={limit} onChange={e => setLimit(e.target.value)} />
+            <input type="number" min="0" placeholder="tanpa batas" value={limit} onChange={e => setLimit(e.target.value)} />
           </label>
           <label className="field">
             <span>Limit per sender</span>
-            <input type="number" min="0" placeholder="no limit" value={limitPerSender} onChange={e => setLimitPerSender(e.target.value)} />
+            <input type="number" min="0" placeholder="tanpa batas" value={limitPerSender} onChange={e => setLimitPerSender(e.target.value)} />
           </label>
         </div>
 
         <div className="form-row" style={{ marginTop: '1rem' }}>
-          <button className="btn" onClick={() => start()}>
-            <Play size={16} /> Start with options above
-          </button>
-          <button className="btn btn-outline" onClick={() => start({ dryRun: true, limit: '3', limitPerSender: '', force: false })}>
-            <FlaskConical size={16} /> Quick Dry Run (3)
-          </button>
           <button className="btn btn-outline" onClick={() => start({ dryRun: false, limit: '3', limitPerSender: '', force: false })}>
-            <FlaskConical size={16} /> Test Real (3 emails)
+            <FlaskConical size={16} /> Test Real (3)
           </button>
-          <button className="btn btn-outline" onClick={() => start({ dryRun: false, limit: '', limitPerSender: '1', force: false })}>
-            <ShieldAlert size={16} /> 1 per sender
+          <button className="btn" onClick={() => start()}>
+            <Play size={16} /> Start
           </button>
         </div>
         {error && <p className="error-text">{error}</p>}
+        {msg && <p className="info-text">{msg}</p>}
       </div>
 
+      {/* ── Live output ── */}
       {activeJobId && (
         <div className="table-section" style={{ marginBottom: '1.5rem' }}>
           <h2>Live Output</h2>
-          <LogViewer jobId={activeJobId} onStatusChange={() => loadJobs()} />
+          <LogViewer jobId={activeJobId} onStatusChange={() => { loadJobs(); loadStats(); }} />
         </div>
       )}
 
-      <div className="table-section">
+      {/* ── Job history ── */}
+      <div className="table-section" style={{ marginBottom: '1.5rem' }}>
         <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0 }}>Job History</h2>
+          <h2 style={{ margin: 0 }}>Riwayat Job</h2>
           <button
             className="btn btn-small btn-danger"
             onClick={async () => {
-              if (!confirm('Hapus semua riwayat job dan file log-nya? (Job yang sedang berjalan tidak ikut terhapus)')) return;
-              try {
-                await del('/api/jobs');
-                setActiveJobId(null);
-                loadJobs();
-              } catch (e: any) { setError(e.message); }
+              if (!confirm('Hapus semua riwayat job dan log-nya?')) return;
+              try { await del('/api/jobs'); setActiveJobId(null); loadJobs(); }
+              catch (e: any) { setError(e.message); }
             }}
           >
             <Trash2 size={14} /> Hapus Riwayat
@@ -115,7 +210,7 @@ const RunPage: React.FC = () => {
         </div>
         <table>
           <thead>
-            <tr><th>Job</th><th>Status</th><th>Started</th><th>Finished</th><th></th></tr>
+            <tr><th>Job</th><th>Status</th><th>Mulai</th><th>Selesai</th><th></th></tr>
           </thead>
           <tbody>
             {jobs.map(j => (
@@ -127,14 +222,23 @@ const RunPage: React.FC = () => {
                 <td><span className={`status-badge job-${j.status}`}><span className="status-dot"></span>{j.status}</span></td>
                 <td className="text-muted">{new Date(j.startedAt).toLocaleString()}</td>
                 <td className="text-muted">{j.endedAt ? new Date(j.endedAt).toLocaleString() : '—'}</td>
-                <td>
-                  <button className="btn btn-small btn-outline" onClick={() => setActiveJobId(j.id)}>View Logs</button>
-                </td>
+                <td><button className="btn btn-small btn-outline" onClick={() => setActiveJobId(j.id)}>Logs</button></td>
               </tr>
             ))}
-            {jobs.length === 0 && <tr><td colSpan={5} className="empty-cell">No jobs yet.</td></tr>}
+            {jobs.length === 0 && <tr><td colSpan={5} className="empty-cell">Belum ada job.</td></tr>}
           </tbody>
         </table>
+      </div>
+
+      {/* ── Danger zone ── */}
+      <div className="table-section">
+        <h2>Danger Zone</h2>
+        <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
+          Reset riwayat scheduled hanya jika ingin mulai ulang dari nol. Backup otomatis dibuat sebelum dihapus.
+        </p>
+        <button className="btn btn-danger" onClick={resetScheduled}>
+          <RotateCcw size={16} /> Reset Riwayat Scheduled (mulai dari nol)
+        </button>
       </div>
     </div>
   );

@@ -63,17 +63,20 @@ const App: React.FC = () => {
       </aside>
 
       <main className="main-content">
-        <header className="header">
-          <h1>{current?.title || 'Settings'}</h1>
-        </header>
+        <div className="main-scroll">
+          <header className="header">
+            <h1>{current?.title || 'Settings'}</h1>
+          </header>
 
-        {page === 'overview' && <Overview />}
-        {page === 'run' && <RunPage />}
-        {page === 'schedule' && <SchedulePage />}
-        {page === 'accounts' && <AccountsPage />}
-        {page === 'templates' && <TemplatesPage />}
-        {page === 'results' && <ResultsPage />}
-        {page === 'settings' && <SettingsPage />}
+          {page === 'overview' && <Overview onNavigate={p => setPage(p as PageKey)} />}
+          {page === 'run' && <RunPage />}
+          {page === 'schedule' && <SchedulePage />}
+          {page === 'accounts' && <AccountsPage />}
+          {page === 'templates' && <TemplatesPage />}
+          {page === 'results' && <ResultsPage />}
+          {page === 'settings' && <SettingsPage />}
+        </div>
+        <footer className="main-footer">by peng</footer>
       </main>
     </div>
   );

@@ -45,20 +45,74 @@ function resolveRuntimeDirs() {
     LOGS_DIR: path.join(base, 'logs'),
   };
 
-  // First-run seed: copy bundled CSVs into the writable data dir.
-  // The bundled data lives in resources/data (electron-builder extraResources)
-  // or in the app folder's own data dir (@electron/packager) — try both.
+  // Blank CSVs (headers only) for files that must be empty on fresh install.
+  const BLANK_CSVS = {
+    'sender_accounts.csv':   'sender_email,display_name,profile_dir,enabled\n',
+    'schedule_tracker.csv':  'queue_id,sender_email,recipient_email,subject,template_key,scheduled_at,category,company_name,website,day_name,per_sender_sequence,notes\n',
+    'scheduled_results.csv': 'queue_id,sender_email,recipient_email,subject,scheduled_at,status,scheduled_native_at,created_at,notes\n',
+    'failed_results.csv':    'queue_id,sender_email,recipient_email,subject,scheduled_at,error_code,error_message,failed_at,screenshot_path\n',
+  };
+
+  // Pre-seeded CSVs: written on fresh install OR when file exists but has no data rows.
+  const SEEDED_CSVS = {
+    'templates.csv': [
+      'template_key,body',
+      'T1,"hello- thinking of doing reddit commenting?\n\nit will show up on llms.\n\ni do provide 100 comments + 4 posts/mo on reddit.\n\nbeen doing this for b2b/b2c saas/retail.\n\nshould i send you case studies?"',
+      'T2,"hello- thinking of doing reddit comment?\n\nit will show up on llms and google ai overviews.\n\ni do provide 100 comments + 4 posts/mo on reddit.\n\nbeen doing this for yc/techstars b2b/b2c/d2c.\n\nshould i send you case studies?"',
+      'T3,"hey- thinking of doing reddit commenting?\n\nit will show up on ai search engines.\n\ni do provide 100 comments + 4 posts/mo on reddit.\n\nbeen doing this for yc/techstars b2b/b2c/d2c.\n\ncan i send you examples?"',
+      'T4,"tried any reddit commenting/posting?\n\nchatgpt/perplexity/gemini getting 67%+ of their answers from reddit.\n\nso commenting on relevant subreddits will bring user signups, traffic, leads (make you visible on both LLMs/Google).\n\ni\'d suggest doing 100 comments + 4 post / mo (mentioning your brand).\n\nbeen doing this for b2b/b2c/d2c brands incl. techstars and yc startups.\n\nSearch up ""getredditor dot com"" to see how it works."',
+      'T5,"people now ask things on llm.\n\ni\'d think about doing some ai search visibility stuff like reddit commenting/posting.\n\nsee ""getredditor"" if you\'re keen."',
+    ].join('\n') + '\n',
+    'subject_pool.csv': [
+      'subject_id,subject',
+      'S1,your commentator',
+      'S2,jump the gun',
+      'S3,social seo',
+      'S4,reddit at your fingertips',
+      'S5,reddit for seo',
+      'S6,rolling in reddit',
+      'S7,organic reddit',
+      'S8,small growth idea',
+      'S9,commenting on reddit',
+      'S10,visibility beyond google',
+      'S11,reddit comments',
+      'S12,where buyers ask',
+      'S13,reddit loop',
+      'S14,your footprint',
+      'S15,seen on reddit',
+      'S16,reddit as proof',
+      'S17,reddit-led gen',
+      'S18,words on reddit',
+      'S19,found you on reddit',
+      'S20,all hands on deck',
+      'S21,easy does it',
+      'S22,reddit fast track',
+    ].join('\n') + '\n',
+  };
+
   if (!fs.existsSync(dirs.DATA_DIR)) {
     fs.mkdirSync(dirs.DATA_DIR, { recursive: true });
-    const seedCandidates = [
-      path.join(process.resourcesPath, 'data'),
-      path.join(ROOT, 'data'),
-    ];
-    const seedDir = seedCandidates.find(d => fs.existsSync(d));
-    if (seedDir) {
-      for (const file of fs.readdirSync(seedDir)) {
-        try { fs.copyFileSync(path.join(seedDir, file), path.join(dirs.DATA_DIR, file)); }
-        catch (_) { /* skip directories / locked files */ }
+    for (const [file, content] of Object.entries(BLANK_CSVS)) {
+      fs.writeFileSync(path.join(dirs.DATA_DIR, file), content, 'utf8');
+    }
+    for (const [file, content] of Object.entries(SEEDED_CSVS)) {
+      fs.writeFileSync(path.join(dirs.DATA_DIR, file), content, 'utf8');
+    }
+  } else {
+    // Ensure missing files are created; seed templates/subjects if they have no data rows.
+    for (const [file, content] of Object.entries(BLANK_CSVS)) {
+      const p = path.join(dirs.DATA_DIR, file);
+      if (!fs.existsSync(p)) fs.writeFileSync(p, content, 'utf8');
+    }
+    for (const [file, content] of Object.entries(SEEDED_CSVS)) {
+      const p = path.join(dirs.DATA_DIR, file);
+      if (!fs.existsSync(p)) {
+        fs.writeFileSync(p, content, 'utf8');
+      } else {
+        // Seed if file only has the header line (no data rows yet)
+        const existing = fs.readFileSync(p, 'utf8').trim();
+        const lines = existing.split('\n').filter(l => l.trim());
+        if (lines.length <= 1) fs.writeFileSync(p, content, 'utf8');
       }
     }
   }
@@ -75,6 +129,7 @@ const RUNTIME_DIRS = resolveRuntimeDirs();
 // ---------------------------------------------------------------------------
 let mainWindow = null;
 let splashWindow = null;
+let splashShownAt = 0;
 let tray = null;
 let isQuitting = false;
 
@@ -97,25 +152,27 @@ app.on('second-instance', () => {
 // This avoids requiring an external .ico file and works on all platforms.
 // ---------------------------------------------------------------------------
 function buildTrayIcon() {
-  // Simple 16x16 colored icon (blue gradient square)
-  // If a custom icon exists, prefer that.
-  const customIconPath = path.join(__dirname, 'icon.png');
-  if (fs.existsSync(customIconPath)) {
-    return nativeImage.createFromPath(customIconPath);
+  // Look for icon.png in several locations (packaged vs dev)
+  const candidates = [
+    path.join(__dirname, 'icon.png'),
+    path.join(__dirname, 'icon.ico'),
+    app.isPackaged ? path.join(process.resourcesPath, 'icon.png') : null,
+  ].filter(Boolean);
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      const img = nativeImage.createFromPath(p);
+      if (!img.isEmpty()) return img;
+    }
   }
-  const icoPath = path.join(__dirname, 'icon.ico');
-  if (fs.existsSync(icoPath)) {
-    return nativeImage.createFromPath(icoPath);
-  }
-  // Fallback: 16x16 blue square via data URL
-  return nativeImage
-    .createFromDataURL(
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/' +
-      '9hAAAAAXNSR0IArs4c6QAAAGRJREFUOBFjYBgFgz4AGBkZ/zMyMDAyMTExMDMzM7Cw' +
-      'sDCwsrIysLGxMbCzszNwcHAwcHJyMnBxcTFwc3Mz8PDwMPDy8jLw8fEx8PPzMwgICD' +
-      'AICgoyCAsLM4iIiDCIiooyjIZ0AAC2Og5BuoU+hgAAAABJRU5ErkJggg=='
-    )
-    .resize({ width: 16, height: 16 });
+
+  // Fallback: embedded 32x32 blue mail icon (base64 PNG)
+  return nativeImage.createFromDataURL(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABnklEQVRYhe2XMU7DMBSGv7cMoGzpyg' +
+    'EYkDogMSAxcgAOwMoJKi6AkDgAA2Ko2JC6deoB2LoDC6JDJdKhqZ3YiRMnLUL6pFSx4/f5t19sWVJKiT8kAID/ThAR/A4RkSmlVErpUkoppVJKqXsA' +
+    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' +
+    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+  ).resize({ width: 32, height: 32 });
 }
 
 // ---------------------------------------------------------------------------
@@ -134,6 +191,7 @@ function createSplashWindow() {
   });
   splashWindow.loadFile(SPLASH_PATH);
   splashWindow.center();
+  splashShownAt = Date.now();
 }
 
 // ---------------------------------------------------------------------------
@@ -159,13 +217,17 @@ function createMainWindow() {
   mainWindow.loadURL(BASE_URL);
 
   mainWindow.once('ready-to-show', () => {
-    // Close splash and reveal main window
-    if (splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.close();
-      splashWindow = null;
-    }
-    mainWindow.show();
-    mainWindow.focus();
+    // Keep splash visible for at least 2.5 s so the animation is seen.
+    const MIN_SPLASH_MS = 2500;
+    const delay = Math.max(0, MIN_SPLASH_MS - (Date.now() - splashShownAt));
+    setTimeout(() => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close();
+        splashWindow = null;
+      }
+      mainWindow.show();
+      mainWindow.focus();
+    }, delay);
   });
 
   // Minimise to tray instead of closing

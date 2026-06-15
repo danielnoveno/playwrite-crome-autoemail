@@ -74,7 +74,7 @@ async function setScheduleDateTime(page, scheduledAtDayjs) {
   // "Pick date & time" link - the custom date/time dialog only appears
   // after clicking it.
   const pickBtn = page.locator(
-    'text=/Pick date & time|Pilih tanggal & waktu|Pilih tanggal dan waktu/i'
+    'text=/Pick date & time|Select date and time|Pilih tanggal & waktu|Pilih tanggal dan waktu/i'
   ).first();
   await pickBtn.waitFor({ timeout: 10000 });
   await pickBtn.click();

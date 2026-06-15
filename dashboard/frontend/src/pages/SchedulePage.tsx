@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Upload, Download, CheckCheck, RefreshCw, Plus, Trash2, Save, Trash } from 'lucide-react';
 import { api, get, post, put, getApiBase, getToken, Job } from '../api';
 import LogViewer from '../components/LogViewer';
+import HelpBox from '../components/HelpBox';
 
 interface ScheduleRow {
   queue_id: string;
@@ -145,10 +146,10 @@ const SchedulePage: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'template_jadwal_email.csv';
+      a.download = 'template_jadwal_email.xlsx';
       a.click();
       URL.revokeObjectURL(url);
-      setMessage('Template ter-download. Isi kolom sender_email, recipient_email, template_key, dan scheduled_at — kolom lain boleh dikosongkan.');
+      setMessage('Template Excel ter-download. Isi sheet "Schedule" — kolom queue_id, day_name, per_sender_sequence biarkan kosong, diisi otomatis. Lihat sheet "Panduan" untuk petunjuk lengkap.');
     } catch (e: any) { setMessage(`Gagal download template: ${e.message}`); }
   };
 
@@ -182,8 +183,6 @@ const SchedulePage: React.FC = () => {
       const job = await post<Job>('/api/jobs/convert', {
         input: uploadedXlsx,
         startDate: startDate || undefined,
-        startTime,
-        gapMinutes: parseInt(gapMinutes, 10) || 7,
       });
       setLogJobId(job.id);
     } catch (e: any) { setMessage(e.message); }
@@ -208,6 +207,31 @@ const SchedulePage: React.FC = () => {
 
   return (
     <div>
+      <HelpBox
+        title="Cara upload jadwal — cukup 3 langkah!"
+        defaultOpen={rows.length === 0}
+        steps={[
+          {
+            title: '① Download Template Excel',
+            desc: 'Klik "Download Template Excel". File sudah otomatis berisi waktu kirim (mulai sekarang +10 menit, tiap +7 menit), sender, template, dan subject yang sudah di-rotate. Ada 3 sheet: Jadwal (tracking), Setup (info konfigurasi), Panduan (instruksi).',
+          },
+          {
+            title: '② Isi kolom "recipient_email" di sheet "Jadwal"',
+            desc: 'Buka sheet Jadwal — kolom D (background kuning). Isi email penerima per baris sesuai slot waktu yang sudah tertera. Baris yang kosong otomatis di-skip. Kolom lain (sender, template, waktu) TIDAK perlu diubah — sudah otomatis!',
+          },
+          {
+            title: '③ Upload → Convert → tracking',
+            desc: 'Klik "Upload Excel / CSV" → pilih file → klik "Convert & Generate Jadwal". Setelah automasi berjalan, update kolom "Terjadwal?" dan "Terkirim?" di sheet Jadwal untuk tracking status tiap email.',
+          },
+        ]}
+        tips={[
+          'Download template BARU setiap sesi — waktu dihitung ulang dari saat download.',
+          'Pastikan akun sudah di-Login (menu Accounts) sebelum run — Chrome perlu akses Gmail.',
+          'Upload akan MENGGANTI seluruh jadwal yang ada. Backup otomatis dibuat.',
+          'Setelah upload, klik Validate untuk cek error, lalu run dari menu Run Automation.',
+          'Email yang sudah SCHEDULED tidak akan diproses ulang saat run — aman kalau perlu upload ulang.',
+        ]}
+      />
       <div className="table-section" style={{ marginBottom: '1.5rem' }}>
         <h2>Tambah / Import Email</h2>
         <div className="form-row">
@@ -225,7 +249,7 @@ const SchedulePage: React.FC = () => {
             <Upload size={16} /> Upload Excel / CSV
           </button>
           <button className="btn btn-outline" onClick={downloadTemplate}>
-            <Download size={16} /> Download Template CSV
+            <Download size={16} /> Download Template Excel
           </button>
           <button className="btn btn-outline" onClick={runValidate}>
             <CheckCheck size={16} /> Validate
@@ -273,17 +297,18 @@ const SchedulePage: React.FC = () => {
 
         {uploadedXlsx && (
           <div className="convert-box">
+            <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+              <strong>File Excel siap di-convert.</strong> Waktu diacak otomatis di best-time window:
+              {' '}<strong>08:00–11:00</strong> (pagi) + <strong>18:00–06:00</strong> (malam) WIB,
+              maks <strong>20 email/akun/hari</strong>, jarak min. <strong>7 menit</strong>.
+            </p>
             <div className="form-row">
               <label className="field"><span>Tanggal mulai</span>
                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
               </label>
-              <label className="field"><span>Jam mulai (WIB)</span>
-                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-              </label>
-              <label className="field"><span>Jeda menit per pengirim</span>
-                <input type="number" min="1" value={gapMinutes} onChange={e => setGapMinutes(e.target.value)} />
-              </label>
-              <button className="btn" style={{ alignSelf: 'flex-end' }} onClick={runConvert}>Convert</button>
+              <button className="btn" style={{ alignSelf: 'flex-end' }} onClick={runConvert}>
+                Convert &amp; Generate Jadwal
+              </button>
             </div>
           </div>
         )}

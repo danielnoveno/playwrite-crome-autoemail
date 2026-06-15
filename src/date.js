@@ -17,8 +17,10 @@ function nowJkt() {
 }
 
 function parseJktDateTime(value) {
-  // Assuming value is YYYY-MM-DD HH:mm and in JKT timezone
-  return dayjs.tz(value, 'YYYY-MM-DD HH:mm', config.DEFAULT_TIMEZONE);
+  if (!value || typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(value.trim())) {
+    return dayjs.tz('1970-01-01 00:00', 'YYYY-MM-DD HH:mm', config.DEFAULT_TIMEZONE); // sentinel for bad rows
+  }
+  return dayjs.tz(value.trim(), 'YYYY-MM-DD HH:mm', config.DEFAULT_TIMEZONE);
 }
 
 function formatForGmailCustomDate(date) {

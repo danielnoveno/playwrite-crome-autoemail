@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Read(//c/Users/ASUS/AppData/Roaming/**)",
+      "Read(//c/Users/ASUS/AppData/Roaming/gmail-scheduler/**)"
+    ]
+  }
+}
