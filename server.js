@@ -241,6 +241,85 @@ app.get('/api/results/failed', wrap((req, res) => {
   res.json(csv.readCsv(DATA('failed_results.csv')));
 }));
 
+// Helper: buat satu retry row dari original schedule row
+function makeRetryRow(original, scheduleRows) {
+  const pad = n => String(n).padStart(2, '0');
+  const scheduled_at = original.scheduled_at; // pakai waktu jadwal asli
+  const datePart = scheduled_at.slice(0, 10).replace(/-/g, '');
+  const existingIds = new Set(scheduleRows.map(r => r.queue_id));
+  let seq = scheduleRows.length + 1;
+  let newQueueId;
+  do {
+    newQueueId = `Q-${datePart}-RETRY-${String(seq).padStart(4, '0')}`;
+    seq += 1;
+  } while (existingIds.has(newQueueId));
+
+  const d = new Date(scheduled_at.replace(' ', 'T'));
+  const dayName = isNaN(d) ? original.day_name : d.toLocaleDateString('en-US', { weekday: 'long' });
+  const perSenderSeq = scheduleRows.filter(r => r.sender_email === original.sender_email).length + 1;
+
+  const newRow = {
+    queue_id: newQueueId,
+    sender_email: original.sender_email,
+    recipient_email: original.recipient_email,
+    subject: original.subject || '',
+    template_key: original.template_key,
+    scheduled_at,
+    category: original.category || '',
+    company_name: original.company_name || '',
+    website: original.website || '',
+    day_name: dayName,
+    per_sender_sequence: String(perSenderSeq),
+    notes: `retry:${original.queue_id}`,
+  };
+  scheduleRows.push(newRow); // update in-memory agar seq berikutnya tidak tabrakan
+  return newRow;
+}
+
+// Retry satu email gagal — reschedule dengan waktu jadwal asli.
+app.post('/api/results/failed/retry', wrap((req, res) => {
+  const { queue_id } = req.body || {};
+  if (!queue_id) return res.status(400).json({ error: 'queue_id diperlukan' });
+
+  const failedRows = csv.readCsv(DATA('failed_results.csv'));
+  if (!failedRows.find(r => r.queue_id === queue_id))
+    return res.status(404).json({ error: `queue_id tidak ditemukan: ${queue_id}` });
+
+  const scheduleRows = csv.readCsv(DATA('schedule_tracker.csv'));
+  const original = scheduleRows.find(r => r.queue_id === queue_id);
+  if (!original) return res.status(404).json({ error: `Baris asli tidak ada di schedule_tracker: ${queue_id}` });
+
+  const newRow = makeRetryRow(original, scheduleRows);
+  csv.appendCsv(DATA('schedule_tracker.csv'), newRow, HEADERS.schedule);
+  res.json({ ok: true, new_queue_id: newRow.queue_id, scheduled_at: newRow.scheduled_at });
+}));
+
+// Retry SEMUA email gagal sekaligus.
+app.post('/api/results/failed/retry-all', wrap((req, res) => {
+  const failedRows = csv.readCsv(DATA('failed_results.csv'));
+  if (failedRows.length === 0) return res.json({ ok: true, retried: 0 });
+
+  const scheduleRows = csv.readCsv(DATA('schedule_tracker.csv'));
+  const scheduleMap  = new Map(scheduleRows.map(r => [r.queue_id, r]));
+
+  const newRows = [];
+  const skipped = [];
+  for (const f of failedRows) {
+    const original = scheduleMap.get(f.queue_id);
+    if (!original) { skipped.push(f.queue_id); continue; }
+    const newRow = makeRetryRow(original, scheduleRows);
+    newRows.push(newRow);
+  }
+
+  if (newRows.length > 0) {
+    const allRows = csv.readCsv(DATA('schedule_tracker.csv'));
+    for (const r of newRows) allRows.push(r);
+    csv.writeCsv(DATA('schedule_tracker.csv'), allRows, HEADERS.schedule);
+  }
+
+  res.json({ ok: true, retried: newRows.length, skipped: skipped.length });
+}));
+
 // Clear the failed-results log (a backup copy is kept in data/backups).
 app.delete('/api/results/failed', wrap((req, res) => {
   backupFile(DATA('failed_results.csv'));
@@ -280,8 +359,8 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
   dayjs.extend(dayjsTz);
 
   const TZ       = 'Asia/Jakarta';
-  const GAP_MIN  = 7;
-  const NUM_ROWS = 2000;  // 2000 formula rows (~15 hari worth of valid slots)
+  const GAP_MIN  = 45; // grouped mode: semua sender kirim per slot → 900/45 = 20 slot/hari per sender
+  const NUM_ROWS = 3000;  // rows = DAILY(20) × N_senders × target_days; 3000 ≈ 15 hari × 10 sender
 
   const senderRows   = csv.readCsv(DATA('sender_accounts.csv')).filter(s => s.enabled === 'true');
   const templateRows = csv.readCsv(DATA('templates.csv'));
@@ -334,25 +413,35 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
     D: 'Setup!$B$4', TM: 'Setup!$B$5', G: 'Setup!$B$6',
     SR: 'Setup!$B$9:$B$28', TR: 'Setup!$B$31:$B$50', XR: 'Setup!$B$53:$B$74',
   };
-  // Setup!B76 = helper cell: maps B5 (start time) to valid-cycle index.
-  // Formula: IF(B5*1440<360, B5*1440, IF(B5*1440<480, 360, IF(B5*1440<660, B5*1440-120, IF(B5*1440<1080, 540, B5*1440-540))))
+  // Setup!B76 = helper: maps B5 (start time) to valid-cycle index (vpStart).
+  // Setup!B77 = helper: number of active senders (N) = batch size per time slot.
+  // DAILY     = max emails per sender per day (hardcoded 20).
   const VP_CELL = 'Setup!$B$76';
-  // TVP = total valid minutes elapsed for row n (0-based from row 3)
-  // DO  = day offset (whole cycles of 900 valid min)
-  // POS = position within current 900-min cycle
-  // CLK = actual clock minutes from midnight (maps valid-cycle pos back to real time)
-  const _TVP = `(${VP_CELL}+(ROW()-3)*Setup!$B$6)`;
-  const _DO  = `INT(${_TVP}/900)`;
-  const _POS = `MOD(${_TVP},900)`;
-  const _CLK = `IF(${_POS}<360,${_POS},IF(${_POS}<540,${_POS}+120,${_POS}+540))`;
-  const _DT  = `Setup!$B$4+${_DO}+${_CLK}/1440`;
+  const NS_CELL = 'Setup!$B$77'; // MAX(COUNTA(senders), 1)
+  const DAILY   = 20;
+
+  // SLOT  = global slot index (same for all N rows in a batch)
+  // DAY   = which calendar day (0-based), advances every DAILY slots
+  // SID   = slot-in-day (0..DAILY-1), resets each day
+  // TVP   = valid-cycle minutes from day's start for this slot
+  // DO    = intra-day wrap (1 if TVP crosses 00:00 within same day, else 0)
+  // POS / CLK = blackout-skip mapping back to real clock minutes
+  const DL_CELL = 'Setup!$B$7'; // max kirim per sender per hari (editable)
+  const _SLOT = `INT((ROW()-3)/${NS_CELL})`;
+  const _DAY  = `INT(${_SLOT}/${DL_CELL})`;
+  const _SID  = `MOD(${_SLOT},${DL_CELL})`;
+  const _TVP  = `(${VP_CELL}+${_SID}*Setup!$B$6)`;
+  const _DO   = `INT(${_TVP}/900)`;
+  const _POS  = `MOD(${_TVP},900)`;
+  const _CLK  = `IF(${_POS}<360,${_POS},IF(${_POS}<540,${_POS}+120,${_POS}+540))`;
+  const _DT   = `Setup!$B$4+${_DAY}+${_DO}+${_CLK}/1440`;
 
   const F = {
     dt:  `=TEXT(${_DT},"YYYY-MM-DD HH:MM")`,
     day: `=TEXT(${_DT},"DDDD")`,
     snd: `=IF(COUNTA(${REF.SR})=0,"",INDEX(${REF.SR},MOD(ROW()-3,COUNTA(${REF.SR}))+1))`,
-    tpl: `=IF(COUNTA(${REF.TR})=0,"",INDEX(${REF.TR},MOD(ROW()-3,COUNTA(${REF.TR}))+1))`,
-    sub: `=IF(COUNTA(${REF.XR})=0,"",INDEX(${REF.XR},MOD(ROW()-3,COUNTA(${REF.XR}))+1))`,
+    tpl: `=IF(COUNTA(${REF.TR})=0,"",INDEX(${REF.TR},MOD(ROW()-3+INT((ROW()-3)/COUNTA(${REF.SR})),COUNTA(${REF.TR}))+1))`,
+    sub: `=IF(COUNTA(${REF.XR})=0,"",INDEX(${REF.XR},MOD(ROW()-3+INT((ROW()-3)/COUNTA(${REF.SR})),COUNTA(${REF.XR}))+1))`,
   };
 
   const wb = new ExcelJS.Workbook();
@@ -377,7 +466,7 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
 
   // Row 2: subtitle
   wsSetup.mergeCells('A2:B2');
-  sc(wsSetup.getCell('A2'), '  Edit sel KUNING untuk ubah tanggal, jam, gap — sheet Jadwal otomatis berubah (tekan F9 jika perlu refresh)', { bg: C.NAVY, color: 'ADC8E8', italic: true, size: 9, hAlign: 'center' });
+  sc(wsSetup.getCell('A2'), '  Edit sel KUNING (B4–B7) untuk ubah tanggal, jam, gap, max/hari — sheet Jadwal otomatis berubah (tekan F9 jika perlu refresh)', { bg: C.NAVY, color: 'ADC8E8', italic: true, size: 9, hAlign: 'center' });
   wsSetup.getRow(2).height = 16;
 
   // Row 3: spacer
@@ -409,9 +498,26 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
   gcell.font = { bold: true, size: 11, color: { argb: 'FF1F3864' } };
   gcell.alignment = { horizontal: 'left', vertical: 'middle' };
   wsSetup.getRow(6).height = 24;
+  wsSetup.dataValidations.add('B6', {
+    type: 'whole', operator: 'greaterThanOrEqual', formulae: [7],
+    showErrorMessage: true, errorStyle: 'stop',
+    errorTitle: 'Gap terlalu kecil',
+    error: 'Minimal gap adalah 7 menit untuk menghindari spam filter Gmail.',
+  });
 
-  // Row 7: spacer
-  wsSetup.getRow(7).height = 6;
+  // Row 7: max per day input  ← B7
+  sc(wsSetup.getCell('A7'), '  ✏  Max kirim per sender per hari', { bg: C.YELLOW, color: '1F3864', bold: true });
+  const dcell7 = wsSetup.getCell('B7');
+  dcell7.value = DAILY;
+  dcell7.fill = mkFill(C.YELLOW);
+  dcell7.font = { bold: true, size: 11, color: { argb: 'FF1F3864' } };
+  dcell7.alignment = { horizontal: 'left', vertical: 'middle' };
+  wsSetup.getRow(7).height = 24;
+  wsSetup.dataValidations.add('B7', {
+    type: 'whole', operator: 'greaterThanOrEqual', formulae: [1],
+    showErrorMessage: true, errorStyle: 'stop',
+    errorTitle: 'Nilai tidak valid', error: 'Masukkan angka minimal 1.',
+  });
 
   // Row 8: senders header
   wsSetup.mergeCells('A8:B8');
@@ -474,7 +580,16 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
       formula: '=IF(B5*1440<360,B5*1440,IF(B5*1440<480,360,IF(B5*1440<660,B5*1440-120,IF(B5*1440<1080,540,B5*1440-540))))',
       result: vpStart,
     };
-    wsSetup.getRow(76).height = 3; // visually hidden
+    wsSetup.getRow(76).height = 3;
+  }
+  // Row 77: hidden helper — batch size (number of active senders = N emails per time slot)
+  {
+    const ns = wsSetup.getCell('B77');
+    ns.value = {
+      formula: '=MAX(COUNTA(B9:B28),1)',
+      result: Math.max(senderRows.length, 1),
+    };
+    wsSetup.getRow(77).height = 3;
   }
 
   wsSetup.views = [{ state: 'frozen', ySplit: 3 }];
@@ -518,19 +633,27 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
   // Column colors (index 1-based)
   const COL_BG = ['','F5F5F5','F5F5F5','F5F5F5','FFFBE6','FEFCF0','EEF4FB','EEF4FB','EEF4FB',C.TEAL,C.TEAL];
 
-  // Rows 3-202: formula rows (all slots are valid — formula skips blackout windows)
+  // Rows 3+: formula rows
+  // N senders per slot → same scheduled_at. After DAILY(20) slots, day increments.
+  const N           = Math.max(senderRows.length, 1);
+  const DAILY_LIMIT = 20;
   for (let i = 0; i < NUM_ROWS; i++) {
-    // Compute cached slot time (same logic as F.dt formula, in JS)
-    const tvp     = vpStart + i * GAP_MIN;
-    const dayOff  = Math.floor(tvp / 900);
-    const pos     = tvp % 900;
-    const clkMin  = pos < 360 ? pos : pos < 540 ? pos + 120 : pos + 540;
-    const slot    = firstSlot.startOf('day').add(dayOff, 'day')
-                      .hour(Math.floor(clkMin / 60)).minute(clkMin % 60).second(0);
+    const slotIdx   = Math.floor(i / N);         // global slot
+    const dayIdx    = Math.floor(slotIdx / DAILY_LIMIT); // calendar day (0-based)
+    const slotInDay = slotIdx % DAILY_LIMIT;     // slot 0-19 within the day
 
-    const sEmail  = senderRows.length   > 0 ? senderRows[i % senderRows.length].sender_email        : '';
-    const tKey    = templateRows.length > 0 ? templateRows[i % templateRows.length].template_key     : '';
-    const subj    = subjectRows.length  > 0 ? (subjectRows[i % subjectRows.length].subject || '')    : '';
+    const tvp    = vpStart + slotInDay * GAP_MIN;
+    const doWrap = Math.floor(tvp / 900);        // intra-day midnight wrap
+    const pos    = tvp % 900;
+    const clkMin = pos < 360 ? pos : pos < 540 ? pos + 120 : pos + 540;
+    const slot   = firstSlot.startOf('day')
+                     .add(dayIdx + doWrap, 'day')
+                     .hour(Math.floor(clkMin / 60)).minute(clkMin % 60).second(0);
+
+    // Sender/template/subject rotate by row index → unique combo per row within same slot
+    const sEmail  = senderRows.length   > 0 ? senderRows[i % senderRows.length].sender_email                              : '';
+    const tKey    = templateRows.length > 0 ? templateRows[(i + slotIdx) % templateRows.length].template_key               : '';
+    const subj    = subjectRows.length  > 0 ? (subjectRows[(i + slotIdx) % subjectRows.length].subject || '')              : '';
 
     const r = wsJadwal.getRow(i + 3);
     r.height = 18;

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshCw, Image, Trash2 } from 'lucide-react';
-import { get, del, screenshotUrl } from '../api';
+import { RefreshCw, Image, Trash2, RotateCcw } from 'lucide-react';
+import { get, del, post, screenshotUrl } from '../api';
 
 const ResultsPage: React.FC = () => {
   const [tab, setTab] = useState<'scheduled' | 'failed'>('scheduled');
   const [scheduled, setScheduled] = useState<any[]>([]);
   const [failed, setFailed] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [retrying, setRetrying] = useState<Set<string>>(new Set());
 
   const load = async () => {
     try {
@@ -17,6 +18,19 @@ const ResultsPage: React.FC = () => {
     } catch (e: any) { setError(e.message); }
   };
   useEffect(() => { load(); }, []);
+
+  const retry = async (queue_id: string) => {
+    setRetrying(prev => new Set(prev).add(queue_id));
+    try {
+      const res = await post('/api/results/failed/retry', { queue_id });
+      alert(`✅ Dijadwalkan ulang!\nQueue ID baru: ${res.new_queue_id}\nWaktu: ${res.scheduled_at}`);
+      load();
+    } catch (e: any) {
+      alert(`❌ Gagal retry: ${e.message}`);
+    } finally {
+      setRetrying(prev => { const s = new Set(prev); s.delete(queue_id); return s; });
+    }
+  };
 
   return (
     <div className="table-section">
@@ -30,7 +44,20 @@ const ResultsPage: React.FC = () => {
           </button>
         </div>
         <button className="btn btn-small btn-outline" onClick={load}><RefreshCw size={14} /> Refresh</button>
-        {tab === 'failed' && failed.length > 0 && (
+        {tab === 'failed' && failed.length > 0 && (<>
+          <button
+            className="btn btn-small btn-outline"
+            onClick={async () => {
+              if (!confirm(`Retry semua ${failed.length} email gagal dengan waktu jadwal aslinya?`)) return;
+              try {
+                const res = await post('/api/results/failed/retry-all', {});
+                alert(`✅ ${res.retried} email dijadwalkan ulang.${res.skipped ? `\n⚠️ ${res.skipped} dilewati (tidak ada di schedule tracker).` : ''}`);
+                load();
+              } catch (e: any) { setError(e.message); }
+            }}
+          >
+            <RotateCcw size={14} /> Retry All ({failed.length})
+          </button>
           <button
             className="btn btn-small btn-danger"
             onClick={async () => {
@@ -40,7 +67,7 @@ const ResultsPage: React.FC = () => {
           >
             <Trash2 size={14} /> Hapus Semua Failed
           </button>
-        )}
+        </>)}
       </div>
       {error && <p className="error-text">{error}</p>}
 
@@ -71,7 +98,7 @@ const ResultsPage: React.FC = () => {
         <div className="table-scroll">
           <table>
             <thead>
-              <tr><th>Queue ID</th><th>Sender</th><th>Recipient</th><th>Error</th><th>Failed At</th><th>Screenshot</th></tr>
+              <tr><th>Queue ID</th><th>Sender</th><th>Recipient</th><th>Error</th><th>Failed At</th><th>Screenshot</th><th>Action</th></tr>
             </thead>
             <tbody>
               {failed.map((r, i) => (
@@ -96,6 +123,17 @@ const ResultsPage: React.FC = () => {
                         <Image size={14} /> View
                       </a>
                     ) : <span className="text-muted">—</span>}
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-small btn-outline"
+                      disabled={retrying.has(r.queue_id)}
+                      onClick={() => retry(r.queue_id)}
+                      title="Jadwalkan ulang email ini sekarang"
+                    >
+                      <RotateCcw size={14} />
+                      {retrying.has(r.queue_id) ? ' ...' : ' Retry'}
+                    </button>
                   </td>
                 </tr>
               ))}
