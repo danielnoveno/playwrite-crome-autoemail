@@ -77,6 +77,8 @@ if "%CHROME_FOUND%"=="0" (
 echo.
 echo  ───────────────────────────────────────────────
 echo   Menjalankan Gmail Scheduler Desktop...
+echo   Untuk pemula: ikuti halaman Overview setelah aplikasi terbuka.
+echo   Urutan aman: Accounts ^> Templates ^> Schedule ^> Run Automation.
 echo   Tutup window ini = aplikasi berhenti.
 echo  ───────────────────────────────────────────────
 echo.

@@ -16,21 +16,24 @@ import AccountsPage from './pages/AccountsPage';
 import TemplatesPage from './pages/TemplatesPage';
 import ResultsPage from './pages/ResultsPage';
 import SettingsPage from './pages/SettingsPage';
+import OnboardingTour from './components/OnboardingTour';
 
 type PageKey = 'overview' | 'run' | 'schedule' | 'accounts' | 'templates' | 'results' | 'settings';
 
 const NAV: { key: PageKey; label: string; icon: React.ReactNode; title: string }[] = [
   { key: 'overview', label: 'Overview', icon: <LayoutDashboard size={18} />, title: 'Dashboard Overview' },
-  { key: 'run', label: 'Run Automation', icon: <Play size={18} />, title: 'Run Automation' },
-  { key: 'schedule', label: 'Schedule', icon: <CalendarClock size={18} />, title: 'Schedule Tracker' },
-  { key: 'accounts', label: 'Accounts', icon: <Users size={18} />, title: 'Sender Accounts' },
-  { key: 'templates', label: 'Templates', icon: <FileText size={18} />, title: 'Templates & Subjects' },
-  { key: 'results', label: 'Results', icon: <ListChecks size={18} />, title: 'Results' },
+  { key: 'run', label: 'Jalankan', icon: <Play size={18} />, title: 'Jalankan Automation' },
+  { key: 'schedule', label: 'Jadwal Email', icon: <CalendarClock size={18} />, title: 'Jadwal Email' },
+  { key: 'accounts', label: 'Akun Gmail', icon: <Users size={18} />, title: 'Akun Pengirim Gmail' },
+  { key: 'templates', label: 'Isi Email', icon: <FileText size={18} />, title: 'Template Isi Email & Subject' },
+  { key: 'results', label: 'Hasil', icon: <ListChecks size={18} />, title: 'Hasil Penjadwalan' },
 ];
 
 const App: React.FC = () => {
   const [page, setPage] = useState<PageKey>('overview');
+  const [showTour, setShowTour] = useState(() => localStorage.getItem('onboardingDone') !== 'true');
   const current = NAV.find(n => n.key === page);
+  const navigate = (nextPage: string) => setPage(nextPage as PageKey);
 
   return (
     <div className="app-container">
@@ -66,9 +69,12 @@ const App: React.FC = () => {
         <div className="main-scroll">
           <header className="header">
             <h1>{current?.title || 'Settings'}</h1>
+            <button className="btn btn-small btn-outline" onClick={() => setShowTour(true)}>
+              Panduan Pemula
+            </button>
           </header>
 
-          {page === 'overview' && <Overview onNavigate={p => setPage(p as PageKey)} />}
+          {page === 'overview' && <Overview onNavigate={navigate} />}
           {page === 'run' && <RunPage />}
           {page === 'schedule' && <SchedulePage />}
           {page === 'accounts' && <AccountsPage />}
@@ -78,6 +84,7 @@ const App: React.FC = () => {
         </div>
         <footer className="main-footer">by peng</footer>
       </main>
+      {showTour && <OnboardingTour onClose={() => setShowTour(false)} onNavigate={navigate} />}
     </div>
   );
 };

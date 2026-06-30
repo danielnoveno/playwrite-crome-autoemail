@@ -16,11 +16,11 @@ const IGNORE = [
   /^\/dist-desktop/,
   /^\/\.git($|\/)/,
   /^\/\.claude($|\/)/,
+  /^\/\.env$/,
+  /^\/data($|\/)/,
   /^\/profiles($|\/)/,        // Gmail sessions - privacy
   /^\/screenshots($|\/)/,
   /^\/logs($|\/)/,
-  /^\/data\/uploads($|\/)/,
-  /^\/data\/backups($|\/)/,
   /^\/dashboard\/frontend\/node_modules($|\/)/,
   /^\/dashboard\/frontend\/src($|\/)/,
   /^\/dashboard\/frontend\/\.vite($|\/)/,

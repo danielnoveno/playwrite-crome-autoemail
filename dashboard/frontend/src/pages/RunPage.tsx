@@ -16,6 +16,7 @@ const RunPage: React.FC = () => {
   const [limit, setLimit] = useState('3');
   const [limitPerSender, setLimitPerSender] = useState('');
   const [force, setForce] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -45,6 +46,7 @@ const RunPage: React.FC = () => {
       limitPerSender: (overrides.limitPerSender ?? limitPerSender) ? parseInt(overrides.limitPerSender ?? limitPerSender, 10) : undefined,
       force: overrides.force ?? force,
     };
+    if (payload.force && !confirm('Force bisa membuat email duplikat di Gmail karena cek riwayat diabaikan. Lanjut hanya jika benar-benar paham risikonya.')) return;
     if (!payload.dryRun && !payload.limit && !payload.limitPerSender) {
       if (!confirm(`Jalankan SEMUA ${stats?.schedule_pending ?? ''} email pending? Chrome akan terbuka dan memproses semuanya.`)) return;
     }
@@ -83,15 +85,14 @@ const RunPage: React.FC = () => {
   return (
     <div>
       <HelpBox
-        title="Cara menjalankan automasi pengiriman email"
+        title="Cara aman menjalankan automasi pengiriman email"
         steps={[
-          { title: 'Test dulu dengan "Test Real (3)"', desc: 'klik tombol ini untuk coba 3 email pertama. Chrome akan terbuka, login otomatis, dan jadwalkan email di Gmail. Cek folder "Scheduled" di Gmail untuk konfirmasi.' },
-          { title: 'Kalau berhasil, klik "Lanjut / Resume"', desc: 'tombol ini muncul di bagian Status Pengiriman. Klik untuk proses semua email yang masih pending. Tidak perlu mulai dari awal — email yang sudah terjadwal di-skip otomatis.' },
-          { title: 'Kalau error di tengah jalan', desc: 'cukup klik "Lanjut / Resume" lagi. Sistem otomatis tahu mana yang sudah selesai dan lanjut dari yang belum.' },
+          { title: '1. Cek Data dulu', desc: 'klik "Cek Data" untuk melihat preview tanpa membuka browser dan tanpa menjadwalkan email.' },
+          { title: '2. Test 3 Email', desc: 'klik "Test 3 Email". Chrome akan terbuka dan menjadwalkan 3 email pertama. Cek folder Scheduled di Gmail.' },
+          { title: '3. Jalankan Semua', desc: 'kalau test berhasil, klik "Jalankan Semua Pending" atau "Lanjut / Resume" untuk memproses sisa jadwal.' },
         ]}
         tips={[
-          '"Dry Run" = hanya preview di log, tidak buka browser, tidak ada email yang dikirim.',
-          '"Force" = paksa proses ulang meski sudah pernah dijadwalkan (hati-hati: bisa duplikat di Gmail).',
+          'Sistem otomatis mengecek jadwal sebelum run nyata. Kalau ada error, browser tidak akan dijalankan.',
           'Chrome harus terbuka di PC ini saat run — jangan tutup Chrome yang terbuka otomatis.',
           'Kalau muncul error LOGIN_REQUIRED, pergi ke Accounts dan klik Login untuk akun tersebut.',
           'Kalau muncul error Timeout, biasanya Gmail lambat — coba run lagi, biasanya berhasil di percobaan berikutnya.',
@@ -151,15 +152,14 @@ const RunPage: React.FC = () => {
 
       {/* ── Run options ── */}
       <div className="table-section" style={{ marginBottom: '1.5rem' }}>
-        <h2>Run Automation</h2>
+        <h2>Jalankan Automation</h2>
+        <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
+          Gunakan urutan aman: Cek Data → Test 3 Email → Jalankan Semua Pending.
+        </p>
         <div className="form-row" style={{ marginBottom: '1rem' }}>
           <label className="checkbox-label">
             <input type="checkbox" checked={dryRun} onChange={e => setDryRun(e.target.checked)} />
-            Dry run (preview saja, tidak buka browser)
-          </label>
-          <label className="checkbox-label">
-            <input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)} />
-            Force (abaikan cek duplikat)
+            Cek data saja (tidak buka browser)
           </label>
         </div>
         <div className="form-row">
@@ -174,13 +174,34 @@ const RunPage: React.FC = () => {
         </div>
 
         <div className="form-row" style={{ marginTop: '1rem' }}>
+          <button className="btn btn-outline" onClick={() => start({ dryRun: true, limit: '3', limitPerSender: '', force: false })}>
+            <ShieldAlert size={16} /> Cek Data
+          </button>
           <button className="btn btn-outline" onClick={() => start({ dryRun: false, limit: '3', limitPerSender: '', force: false })}>
-            <FlaskConical size={16} /> Test Real (3)
+            <FlaskConical size={16} /> Test 3 Email
           </button>
           <button className="btn" onClick={() => start()}>
-            <Play size={16} /> Start
+            <Play size={16} /> {dryRun ? 'Mulai Cek Data' : 'Jalankan'}
           </button>
         </div>
+        <button
+          className="btn btn-small btn-outline"
+          style={{ marginTop: '1rem' }}
+          onClick={() => setAdvancedOpen(v => !v)}
+        >
+          Opsi Advanced
+        </button>
+        {advancedOpen && (
+          <div className="convert-box" style={{ marginTop: '1rem' }}>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)} />
+              Force: abaikan cek duplikat scheduled_results.csv
+            </label>
+            <p className="error-text" style={{ marginTop: '0.75rem' }}>
+              Hati-hati: Force bisa membuat email yang sama dijadwalkan dua kali di Gmail. Jangan aktifkan untuk pemakaian normal.
+            </p>
+          </div>
+        )}
         {error && <p className="error-text">{error}</p>}
         {msg && <p className="info-text">{msg}</p>}
       </div>

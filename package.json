@@ -1,6 +1,6 @@
 {
   "name": "gmail-scheduler",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Native Gmail Schedule Send using Playwright",
   "author": "GetRedditor",
   "main": "desktop/main.js",
@@ -12,7 +12,11 @@
     "convert": "node scripts/excelToScheduleCsv.js --input=data/schedule_tracker.xlsx --output=data/schedule_tracker.csv --start-time=21:00 --gap-minutes=7",
     "validate": "node scripts/validateSchedule.js",
     "start": "node server.js",
-    "ui:build": "cd dashboard/frontend && npm run build",
+    "server": "node server.js",
+    "dashboard": "npm run ui:build && node server.js",
+    "dashboard:build": "npm run ui:build",
+    "dashboard:dev": "npm --prefix dashboard/frontend run dev",
+    "ui:build": "npm --prefix dashboard/frontend run build",
     "desktop": "electron desktop/main.js",
     "desktop:pack": "npm run ui:build && node desktop/pack.js",
     "desktop:build": "npm run ui:build && electron-builder --config desktop/electron-builder.yml"

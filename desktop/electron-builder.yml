@@ -22,19 +22,15 @@ files:
   - "scripts/**/*"
   - "dashboard/frontend/dist/**/*"
   - package.json
-  - .env
   # Exclude heavy/unnecessary files
   - "!**/node_modules/.cache"
   - "!**/.git"
+  - "!**/.env"
+  - "!**/data"
   - "!**/screenshots"
   - "!**/logs"
 
-# Data directory is placed alongside the .exe (not inside ASAR)
-# so the CSV files can be read/written at runtime.
 extraResources:
-  - from: data
-    to: data
-    filter: ["**/*"]
   - from: desktop/icon.png
     to: icon.png
 

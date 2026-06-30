@@ -9,6 +9,7 @@ const multer = require('multer');
 const csv = require('./src/csv');
 const config = require('./src/config');
 const jobRunner = require('./server/jobRunner');
+const dateHelper = require('./src/date');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -829,8 +830,75 @@ app.post('/api/upload', upload.single('file'), wrap((req, res) => {
 // ---------------------------------------------------------------------------
 // Jobs (run the existing CLI scripts as background processes)
 // ---------------------------------------------------------------------------
+function getScheduleReadiness() {
+  const errors = [];
+  const warnings = [];
+  const senders = csv.readCsv(DATA('sender_accounts.csv'));
+  const enabledSenders = senders.filter(s => s.enabled === 'true');
+  const enabledEmails = new Set(enabledSenders.map(s => s.sender_email));
+  const templates = csv.readCsv(DATA('templates.csv'));
+  const templateKeys = new Set(templates.map(t => t.template_key));
+  const schedule = csv.readCsv(DATA('schedule_tracker.csv'));
+  const scheduledIds = new Set(csv.readCsv(DATA('scheduled_results.csv')).map(r => r.queue_id));
+  const pending = schedule.filter(r => !scheduledIds.has(r.queue_id));
+  const queueIds = new Set();
+  const now = dateHelper.nowJkt();
+
+  if (enabledSenders.length === 0) errors.push('Belum ada akun pengirim aktif. Buka menu Accounts, tambah akun, lalu Login.');
+  if (templates.length === 0) errors.push('Belum ada template email. Buka menu Templates, tambahkan minimal 1 template.');
+  if (schedule.length === 0) errors.push('Belum ada jadwal email. Buka menu Schedule, upload Excel/CSV atau tambah email satuan.');
+
+  pending.forEach((row, index) => {
+    const line = index + 2;
+    if (!row.queue_id) errors.push(`Baris ${line}: Queue ID kosong.`);
+    if (row.queue_id && queueIds.has(row.queue_id)) errors.push(`Baris ${line}: Queue ID duplikat (${row.queue_id}).`);
+    if (row.queue_id) queueIds.add(row.queue_id);
+    if (!enabledEmails.has(row.sender_email)) errors.push(`Baris ${line}: akun pengirim tidak aktif/tidak ada (${row.sender_email || 'kosong'}).`);
+    if (!row.recipient_email || !row.recipient_email.includes('@')) errors.push(`Baris ${line}: email tujuan tidak valid (${row.recipient_email || 'kosong'}).`);
+    if (!templateKeys.has(row.template_key)) errors.push(`Baris ${line}: template tidak ditemukan (${row.template_key || 'kosong'}).`);
+    if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(row.scheduled_at || '')) {
+      errors.push(`Baris ${line}: jadwal harus format YYYY-MM-DD HH:mm (${row.scheduled_at || 'kosong'}).`);
+      return;
+    }
+    const scheduledAt = dateHelper.parseJktDateTime(row.scheduled_at);
+    if (!scheduledAt.isValid()) {
+      errors.push(`Baris ${line}: jadwal tidak valid (${row.scheduled_at}).`);
+    } else if (scheduledAt.isBefore(now)) {
+      errors.push(`Baris ${line}: jadwal sudah lewat (${row.scheduled_at}). Ubah ke waktu mendatang.`);
+    }
+  });
+
+  if (pending.length === 0 && schedule.length > 0) warnings.push('Tidak ada email pending. Semua queue_id sudah tercatat scheduled.');
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    counts: {
+      senders_active: enabledSenders.length,
+      templates: templates.length,
+      schedule_total: schedule.length,
+      pending: pending.length,
+    },
+  };
+}
+
+app.get('/api/readiness', wrap((req, res) => {
+  res.json(getScheduleReadiness());
+}));
+
 app.post('/api/jobs/schedule', wrap((req, res) => {
   const { dryRun, limit, limitPerSender, force } = req.body || {};
+  if (!dryRun) {
+    const readiness = getScheduleReadiness();
+    if (!readiness.ok) {
+      return res.status(400).json({
+        error: 'Jadwal belum aman untuk dijalankan:\n' + readiness.errors.slice(0, 10).join('\n') +
+          (readiness.errors.length > 10 ? `\n...dan ${readiness.errors.length - 10} masalah lainnya.` : ''),
+        readiness,
+      });
+    }
+  }
   const args = [];
   if (dryRun) args.push('--dry-run');
   if (limit) args.push(`--limit=${parseInt(limit, 10)}`);

@@ -8,6 +8,8 @@ const gmailUi = require('./gmailUi');
 const dateHelper = require('./date');
 const csv = require('./csv');
 
+const FAILED_HEADERS = ['queue_id', 'sender_email', 'recipient_email', 'subject', 'scheduled_at', 'error_code', 'error_message', 'failed_at', 'screenshot_path'];
+
 const argv = yargs(hideBin(process.argv))
   .option('dry-run', {
     type: 'boolean',
@@ -91,7 +93,9 @@ async function run() {
       // -------------------------------------------------------
       const now = dateHelper.nowJkt(); // returns dayjs in JKT timezone
       if (scheduledAt.isBefore(now)) {
-        console.log(`[${row.queue_id}] Skipping – scheduled time (${row.scheduled_at}) is in the past.`);
+        const message = `Jadwal sudah lewat (${row.scheduled_at}). Ubah jadwal ke waktu mendatang lalu run lagi.`;
+        console.log(`[${row.queue_id}] Failed - ${message}`);
+        appendFailure(row, 'SCHEDULE_IN_PAST', message);
         continue;
       }
 
@@ -120,17 +124,7 @@ async function run() {
       }
     } catch (err) {
       console.error(`Error processing ${row.queue_id}:`, err.message);
-      csv.appendCsv(path.join(config.DATA_DIR, 'failed_results.csv'), {
-        queue_id: row.queue_id,
-        sender_email: row.sender_email,
-        recipient_email: row.recipient_email,
-        subject: row.subject,
-        scheduled_at: row.scheduled_at,
-        error_code: err.message.includes('LOGIN_REQUIRED') ? 'LOGIN_REQUIRED' : 'ERROR',
-        error_message: err.message,
-        failed_at: new Date().toISOString(),
-        screenshot_path: err.screenshotPath || '',
-      }, ['queue_id', 'sender_email', 'recipient_email', 'subject', 'scheduled_at', 'error_code', 'error_message', 'failed_at', 'screenshot_path']);
+      appendFailure(row, err.message.includes('LOGIN_REQUIRED') ? 'LOGIN_REQUIRED' : 'ERROR', err.message, err.screenshotPath || '');
     }
   }
 
@@ -180,6 +174,23 @@ async function processRow(sender, row, subject, body, scheduledAt) {
   } finally {
     if (context) await context.close();
   }
+}
+
+function appendFailure(row, errorCode, errorMessage, screenshotPath = '') {
+  const failedPath = path.join(config.DATA_DIR, 'failed_results.csv');
+  const exists = csv.readCsv(failedPath).some(r => r.queue_id === row.queue_id && r.error_code === errorCode);
+  if (exists) return;
+  csv.appendCsv(failedPath, {
+    queue_id: row.queue_id,
+    sender_email: row.sender_email,
+    recipient_email: row.recipient_email,
+    subject: row.subject,
+    scheduled_at: row.scheduled_at,
+    error_code: errorCode,
+    error_message: errorMessage,
+    failed_at: new Date().toISOString(),
+    screenshot_path: screenshotPath,
+  }, FAILED_HEADERS);
 }
 
 run().catch(err => {

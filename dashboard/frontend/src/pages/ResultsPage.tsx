@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw, Image, Trash2, RotateCcw } from 'lucide-react';
 import { get, del, post, screenshotUrl } from '../api';
+import HelpBox from '../components/HelpBox';
+
+const errorHelp: Record<string, string> = {
+  LOGIN_REQUIRED: 'Akun Gmail keluar. Buka menu Akun Gmail lalu klik Login untuk akun tersebut.',
+  SCHEDULE_IN_PAST: 'Waktu jadwal sudah lewat. Ubah jadwal ke waktu mendatang di menu Jadwal Email.',
+  ERROR: 'Automation gagal saat membuka/menekan Gmail. Lihat screenshot dan coba jalankan lagi.',
+};
 
 const ResultsPage: React.FC = () => {
   const [tab, setTab] = useState<'scheduled' | 'failed'>('scheduled');
@@ -33,17 +40,26 @@ const ResultsPage: React.FC = () => {
   };
 
   return (
-    <div className="table-section">
+    <div>
+      <HelpBox
+        title="Cara membaca hasil"
+        steps={[
+          { title: 'Berhasil Dijadwalkan', desc: 'email sudah masuk folder Scheduled di Gmail.' },
+          { title: 'Gagal', desc: 'email belum berhasil dijadwalkan. Baca pesan error, buka screenshot jika tersedia, lalu perbaiki penyebabnya.' },
+          { title: 'Retry', desc: 'pakai setelah penyebab error diperbaiki, misalnya setelah login ulang akun Gmail.' },
+        ]}
+      />
+      <div className="table-section">
       <div className="form-row" style={{ marginBottom: '1.5rem', alignItems: 'center' }}>
         <div className="tab-group">
           <button className={`tab-btn ${tab === 'scheduled' ? 'active' : ''}`} onClick={() => setTab('scheduled')}>
-            Scheduled ({scheduled.length})
+            Berhasil Dijadwalkan ({scheduled.length})
           </button>
           <button className={`tab-btn ${tab === 'failed' ? 'active' : ''}`} onClick={() => setTab('failed')}>
-            Failed ({failed.length})
+            Gagal ({failed.length})
           </button>
         </div>
-        <button className="btn btn-small btn-outline" onClick={load}><RefreshCw size={14} /> Refresh</button>
+        <button className="btn btn-small btn-outline" onClick={load}><RefreshCw size={14} /> Muat Ulang</button>
         {tab === 'failed' && failed.length > 0 && (<>
           <button
             className="btn btn-small btn-outline"
@@ -56,7 +72,7 @@ const ResultsPage: React.FC = () => {
               } catch (e: any) { setError(e.message); }
             }}
           >
-            <RotateCcw size={14} /> Retry All ({failed.length})
+            <RotateCcw size={14} /> Retry Semua ({failed.length})
           </button>
           <button
             className="btn btn-small btn-danger"
@@ -65,7 +81,7 @@ const ResultsPage: React.FC = () => {
               try { await del('/api/results/failed'); load(); } catch (e: any) { setError(e.message); }
             }}
           >
-            <Trash2 size={14} /> Hapus Semua Failed
+            <Trash2 size={14} /> Hapus Semua Gagal
           </button>
         </>)}
       </div>
@@ -75,7 +91,7 @@ const ResultsPage: React.FC = () => {
         <div className="table-scroll">
           <table>
             <thead>
-              <tr><th>Queue ID</th><th>Sender</th><th>Recipient</th><th>Subject</th><th>Scheduled At</th><th>Created</th></tr>
+              <tr><th>Queue ID</th><th>Pengirim</th><th>Tujuan</th><th>Subject</th><th>Jadwal</th><th>Dibuat</th></tr>
             </thead>
             <tbody>
               {scheduled.map((r, i) => (
@@ -90,7 +106,7 @@ const ResultsPage: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {scheduled.length === 0 && <tr><td colSpan={6} className="empty-cell">No successful schedules yet.</td></tr>}
+              {scheduled.length === 0 && <tr><td colSpan={6} className="empty-cell">Belum ada email yang berhasil dijadwalkan.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -98,7 +114,7 @@ const ResultsPage: React.FC = () => {
         <div className="table-scroll">
           <table>
             <thead>
-              <tr><th>Queue ID</th><th>Sender</th><th>Recipient</th><th>Error</th><th>Failed At</th><th>Screenshot</th><th>Action</th></tr>
+              <tr><th>Queue ID</th><th>Pengirim</th><th>Tujuan</th><th>Error</th><th>Waktu Gagal</th><th>Screenshot</th><th>Aksi</th></tr>
             </thead>
             <tbody>
               {failed.map((r, i) => (
@@ -108,6 +124,7 @@ const ResultsPage: React.FC = () => {
                   <td>{r.recipient_email}</td>
                   <td>
                     <span className="status-badge row-failed"><span className="status-dot"></span>{r.error_code}</span>
+                    <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>{errorHelp[r.error_code] || errorHelp.ERROR}</div>
                     <div className="text-muted" style={{ fontSize: '0.75rem', maxWidth: 320 }}>{r.error_message}</div>
                   </td>
                   <td className="text-muted" style={{ whiteSpace: 'nowrap' }}>
@@ -120,7 +137,7 @@ const ResultsPage: React.FC = () => {
                         href={screenshotUrl(r.screenshot_path.split(/[\\/]/).pop())}
                         target="_blank" rel="noreferrer"
                       >
-                        <Image size={14} /> View
+                        <Image size={14} /> Lihat
                       </a>
                     ) : <span className="text-muted">—</span>}
                   </td>
@@ -137,11 +154,12 @@ const ResultsPage: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {failed.length === 0 && <tr><td colSpan={6} className="empty-cell">No failures. 🎉</td></tr>}
+              {failed.length === 0 && <tr><td colSpan={7} className="empty-cell">Tidak ada error.</td></tr>}
             </tbody>
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 };

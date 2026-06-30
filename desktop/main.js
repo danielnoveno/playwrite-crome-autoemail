@@ -48,46 +48,11 @@ function resolveRuntimeDirs() {
   // Blank CSVs (headers only) for files that must be empty on fresh install.
   const BLANK_CSVS = {
     'sender_accounts.csv':   'sender_email,display_name,profile_dir,enabled\n',
+    'templates.csv':         'template_key,body\n',
+    'subject_pool.csv':      'subject_id,subject\n',
     'schedule_tracker.csv':  'queue_id,sender_email,recipient_email,subject,template_key,scheduled_at,category,company_name,website,day_name,per_sender_sequence,notes\n',
     'scheduled_results.csv': 'queue_id,sender_email,recipient_email,subject,scheduled_at,status,scheduled_native_at,created_at,notes\n',
     'failed_results.csv':    'queue_id,sender_email,recipient_email,subject,scheduled_at,error_code,error_message,failed_at,screenshot_path\n',
-  };
-
-  // Pre-seeded CSVs: written on fresh install OR when file exists but has no data rows.
-  const SEEDED_CSVS = {
-    'templates.csv': [
-      'template_key,body',
-      'T1,"hello- thinking of doing reddit commenting?\n\nit will show up on llms.\n\ni do provide 100 comments + 4 posts/mo on reddit.\n\nbeen doing this for b2b/b2c saas/retail.\n\nshould i send you case studies?"',
-      'T2,"hello- thinking of doing reddit comment?\n\nit will show up on llms and google ai overviews.\n\ni do provide 100 comments + 4 posts/mo on reddit.\n\nbeen doing this for yc/techstars b2b/b2c/d2c.\n\nshould i send you case studies?"',
-      'T3,"hey- thinking of doing reddit commenting?\n\nit will show up on ai search engines.\n\ni do provide 100 comments + 4 posts/mo on reddit.\n\nbeen doing this for yc/techstars b2b/b2c/d2c.\n\ncan i send you examples?"',
-      'T4,"tried any reddit commenting/posting?\n\nchatgpt/perplexity/gemini getting 67%+ of their answers from reddit.\n\nso commenting on relevant subreddits will bring user signups, traffic, leads (make you visible on both LLMs/Google).\n\ni\'d suggest doing 100 comments + 4 post / mo (mentioning your brand).\n\nbeen doing this for b2b/b2c/d2c brands incl. techstars and yc startups.\n\nSearch up ""getredditor dot com"" to see how it works."',
-      'T5,"people now ask things on llm.\n\ni\'d think about doing some ai search visibility stuff like reddit commenting/posting.\n\nsee ""getredditor"" if you\'re keen."',
-    ].join('\n') + '\n',
-    'subject_pool.csv': [
-      'subject_id,subject',
-      'S1,your commentator',
-      'S2,jump the gun',
-      'S3,social seo',
-      'S4,reddit at your fingertips',
-      'S5,reddit for seo',
-      'S6,rolling in reddit',
-      'S7,organic reddit',
-      'S8,small growth idea',
-      'S9,commenting on reddit',
-      'S10,visibility beyond google',
-      'S11,reddit comments',
-      'S12,where buyers ask',
-      'S13,reddit loop',
-      'S14,your footprint',
-      'S15,seen on reddit',
-      'S16,reddit as proof',
-      'S17,reddit-led gen',
-      'S18,words on reddit',
-      'S19,found you on reddit',
-      'S20,all hands on deck',
-      'S21,easy does it',
-      'S22,reddit fast track',
-    ].join('\n') + '\n',
   };
 
   if (!fs.existsSync(dirs.DATA_DIR)) {
@@ -95,25 +60,11 @@ function resolveRuntimeDirs() {
     for (const [file, content] of Object.entries(BLANK_CSVS)) {
       fs.writeFileSync(path.join(dirs.DATA_DIR, file), content, 'utf8');
     }
-    for (const [file, content] of Object.entries(SEEDED_CSVS)) {
-      fs.writeFileSync(path.join(dirs.DATA_DIR, file), content, 'utf8');
-    }
   } else {
-    // Ensure missing files are created; seed templates/subjects if they have no data rows.
+    // Ensure missing files are created without copying local project data.
     for (const [file, content] of Object.entries(BLANK_CSVS)) {
       const p = path.join(dirs.DATA_DIR, file);
       if (!fs.existsSync(p)) fs.writeFileSync(p, content, 'utf8');
-    }
-    for (const [file, content] of Object.entries(SEEDED_CSVS)) {
-      const p = path.join(dirs.DATA_DIR, file);
-      if (!fs.existsSync(p)) {
-        fs.writeFileSync(p, content, 'utf8');
-      } else {
-        // Seed if file only has the header line (no data rows yet)
-        const existing = fs.readFileSync(p, 'utf8').trim();
-        const lines = existing.split('\n').filter(l => l.trim());
-        if (lines.length <= 1) fs.writeFileSync(p, content, 'utf8');
-      }
     }
   }
   for (const dir of Object.values(dirs)) {

@@ -10,19 +10,17 @@ Sistem otomatisasi Gmail outreach berbasis Playwright untuk membuat email masuk 
 - Minimal jeda 7 menit antar email per akun.
 - Mode testing, dry-run, dan limitasi batch.
 
-## Persiapan
-1. Pastikan sudah menginstal [Node.js](https://nodejs.org/).
-2. Masuk ke direktori project:
-   ```powershell
-   cd "D:\Playwrite+Chrome"
-   ```
-3. Instal dependensi:
-   ```powershell
-   npm install
-   npx playwright install chromium
-   ```
+## Cara Paling Mudah Untuk Pemula
 
-## Langkah Penggunaan
+1. Pastikan sudah menginstal [Node.js](https://nodejs.org/).
+2. Klik dua kali `MULAI.bat` untuk menjalankan dashboard web lokal.
+3. Atau klik dua kali `MULAI-DESKTOP.bat` untuk menjalankan aplikasi desktop.
+4. Buka `http://localhost:5000` jika memakai dashboard web.
+5. Ikuti panduan di halaman **Overview**: Accounts → Templates → Schedule → Run Automation.
+
+> Untuk pemula, gunakan dashboard/desktop dulu. Command terminal di bawah ini hanya untuk mode advanced/debug.
+
+## Langkah Penggunaan Advanced via Terminal
 
 ### 1. Login Manual (Wajib Sekali)
 Gunakan perintah ini untuk login ke setiap akun Gmail agar session tersimpan di profile.
@@ -68,6 +66,17 @@ npm run schedule
 node src/scheduleNative.js --limit-per-sender=1
 ```
 
+## Struktur Project
+
+Lihat `docs/STRUCTURE.md` untuk peta folder lengkap. Ringkasnya:
+- `src/`: core scheduler Playwright.
+- `scripts/`: konversi dan validasi data.
+- `server.js` + `server/`: API dashboard dan job runner.
+- `dashboard/frontend/`: UI dashboard.
+- `desktop/`: wrapper Electron.
+- `data/`: CSV/XLSX operasional.
+- `profiles/`, `screenshots/`, `logs/`: runtime output, tidak masuk Git.
+
 ## Struktur Data
 
 ### `data/sender_accounts.csv`
@@ -92,11 +101,6 @@ Dashboard berbasis web agar tim bisa mengoperasikan sistem tanpa terminal: uploa
 
 ### Menjalankan di PC worker (PC yang ada Chrome profile-nya)
 ```powershell
-# sekali saja: install dependensi frontend
-cd dashboard/frontend
-npm install
-cd ../..
-
 # build UI + jalankan server (UI + API jadi satu di port 5000)
 npm run dashboard
 ```
