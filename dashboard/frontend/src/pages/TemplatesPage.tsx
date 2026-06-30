@@ -54,7 +54,7 @@ const TemplatesPage: React.FC = () => {
       <div className="table-section" style={{ marginBottom: '1.5rem' }}>
         <h2>Template Isi Email</h2>
         <div className="form-row" style={{ marginBottom: '1rem' }}>
-          <button className="btn btn-outline" onClick={() => setTemplates(p => [...p, { template_key: `T${p.length + 1}`, body: '' }])}>
+          <button className="btn btn-outline" data-tour="templates-add" onClick={() => setTemplates(p => [...p, { template_key: `T${p.length + 1}`, body: '' }])}>
             <Plus size={16} /> Tambah Template
           </button>
           <button className="btn" onClick={saveTemplates}><Save size={16} /> Simpan Template</button>

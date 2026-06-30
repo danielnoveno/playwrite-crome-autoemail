@@ -47,6 +47,7 @@ const App: React.FC = () => {
             <div
               key={item.key}
               className={`nav-item ${page === item.key ? 'active' : ''}`}
+              data-tour={`nav-${item.key}`}
               onClick={() => setPage(item.key)}
             >
               {item.icon}

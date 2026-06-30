@@ -134,7 +134,7 @@ const AccountsPage: React.FC = () => {
           </p>
         )}
         <div className="form-row" style={{ marginBottom: '1rem' }}>
-          <button className="btn btn-outline" onClick={addRow}><Plus size={16} /> Tambah Akun</button>
+          <button className="btn btn-outline" data-tour="accounts-add" onClick={addRow}><Plus size={16} /> Tambah Akun</button>
           <button className="btn" onClick={save} disabled={saving}>
             {saving ? <><Save size={16} /> Menyimpan…</> : savedOk ? <><CheckCircle2 size={16} /> Tersimpan</> : <><Save size={16} /> Save</>}
           </button>

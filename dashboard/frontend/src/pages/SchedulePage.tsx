@@ -235,7 +235,7 @@ const SchedulePage: React.FC = () => {
       <div className="table-section" style={{ marginBottom: '1.5rem' }}>
         <h2>Tambah / Import Email</h2>
         <div className="form-row">
-          <button className="btn" onClick={() => setShowAdd(v => !v)}>
+          <button className="btn" data-tour="schedule-add" onClick={() => setShowAdd(v => !v)}>
             <Plus size={16} /> Tambah Email Satuan
           </button>
           <input
