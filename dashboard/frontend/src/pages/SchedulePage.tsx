@@ -213,19 +213,21 @@ const SchedulePage: React.FC = () => {
         steps={[
           {
             title: '① Download Template Excel',
-            desc: 'Klik "Download Template Excel". File sudah otomatis berisi waktu kirim (mulai sekarang +10 menit, tiap +7 menit), sender, template, dan subject yang sudah di-rotate. Ada 3 sheet: Jadwal (tracking), Setup (info konfigurasi), Panduan (instruksi).',
+            desc: 'Klik "Download Template Excel". File berisi 3 sheet: Setup untuk atur tanggal/jam/gap/sender/template/subject, Jadwal untuk isi recipient_email, dan Panduan untuk instruksi lengkap.',
           },
           {
-            title: '② Isi kolom "recipient_email" di sheet "Jadwal"',
-            desc: 'Buka sheet Jadwal — kolom D (background kuning). Isi email penerima per baris sesuai slot waktu yang sudah tertera. Baris yang kosong otomatis di-skip. Kolom lain (sender, template, waktu) TIDAK perlu diubah — sudah otomatis!',
+            title: '② Atur Setup lalu isi recipient_email',
+            desc: 'Di sheet Setup, ubah sel kuning kalau perlu: tanggal mulai, jam mulai, gap menit, max per hari, sender, template, subject, dan mode RANDOM/ROTATE. Lalu buka sheet Jadwal dan isi kolom recipient_email saja.',
           },
           {
             title: '③ Upload → Convert → tracking',
-            desc: 'Klik "Upload Excel / CSV" → pilih file → klik "Convert & Generate Jadwal". Setelah automasi berjalan, update kolom "Terjadwal?" dan "Terkirim?" di sheet Jadwal untuk tracking status tiap email.',
+            desc: 'Upload file Excel yang sudah diisi, lalu klik "Convert & Generate Jadwal". Setelah itu klik Validate untuk cek jadwal sebelum run.',
           },
         ]}
         tips={[
           'Download template BARU setiap sesi — waktu dihitung ulang dari saat download.',
+          'Jangan edit kolom formula di sheet Jadwal selain recipient_email/category/tracking.',
+          'Mode RANDOM di Setup membuat template/subject tersebar acak stabil; ROTATE memakai urutan rapi.',
           'Pastikan akun sudah di-Login (menu Accounts) sebelum run — Chrome perlu akses Gmail.',
           'Upload akan MENGGANTI seluruh jadwal yang ada. Backup otomatis dibuat.',
           'Setelah upload, klik Validate untuk cek error, lalu run dari menu Run Automation.',
@@ -245,13 +247,13 @@ const SchedulePage: React.FC = () => {
             style={{ display: 'none' }}
             onChange={e => e.target.files?.[0] && onUpload(e.target.files[0])}
           />
-          <button className="btn btn-outline" onClick={() => fileRef.current?.click()}>
+          <button className="btn btn-outline" data-tour="schedule-upload" onClick={() => fileRef.current?.click()}>
             <Upload size={16} /> Upload Excel / CSV
           </button>
-          <button className="btn btn-outline" onClick={downloadTemplate}>
+          <button className="btn btn-outline" data-tour="schedule-download-template" onClick={downloadTemplate}>
             <Download size={16} /> Download Template Excel
           </button>
-          <button className="btn btn-outline" onClick={runValidate}>
+          <button className="btn btn-outline" data-tour="schedule-validate" onClick={runValidate}>
             <CheckCheck size={16} /> Validate
           </button>
           <button className="btn btn-outline" onClick={load}>
@@ -263,28 +265,29 @@ const SchedulePage: React.FC = () => {
           <div className="convert-box">
             <div className="form-row">
               <label className="field"><span>Pengirim</span>
-                <select value={newSender} onChange={e => setNewSender(e.target.value)}>
+                <select data-tour="schedule-sender" value={newSender} onChange={e => setNewSender(e.target.value)}>
                   <option value="">— pilih akun —</option>
                   {enabledSenders.map(s => <option key={s.sender_email} value={s.sender_email}>{s.sender_email}</option>)}
                 </select>
               </label>
               <label className="field"><span>Email Tujuan</span>
-                <input placeholder="tujuan@email.com" value={newRecipient} onChange={e => setNewRecipient(e.target.value)} />
+                <input data-tour="schedule-recipient" placeholder="tujuan@email.com" value={newRecipient} onChange={e => setNewRecipient(e.target.value)} />
               </label>
               <label className="field"><span>Subject (kosongkan = pakai pool)</span>
                 <input placeholder="opsional" value={newSubject} onChange={e => setNewSubject(e.target.value)} />
               </label>
               <label className="field"><span>Template</span>
-                <select value={newTemplate} onChange={e => setNewTemplate(e.target.value)}>
+                <select data-tour="schedule-template" value={newTemplate} onChange={e => setNewTemplate(e.target.value)}>
                   <option value="">— pilih template —</option>
                   {templates.map(t => <option key={t.template_key} value={t.template_key}>{t.template_key}</option>)}
                 </select>
               </label>
               <label className="field"><span>Jadwal Kirim (WIB)</span>
-                <input type="datetime-local" value={newWhen} onChange={e => setNewWhen(e.target.value)} />
+                <input data-tour="schedule-when" type="datetime-local" value={newWhen} onChange={e => setNewWhen(e.target.value)} />
               </label>
               <button
                 className="btn"
+                data-tour="schedule-submit"
                 style={{ alignSelf: 'flex-end' }}
                 disabled={!newSender || !newRecipient || !newTemplate || !newWhen}
                 onClick={addEmail}
@@ -306,7 +309,7 @@ const SchedulePage: React.FC = () => {
               <label className="field"><span>Tanggal mulai</span>
                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
               </label>
-              <button className="btn" style={{ alignSelf: 'flex-end' }} onClick={runConvert}>
+              <button className="btn" data-tour="schedule-convert" style={{ alignSelf: 'flex-end' }} onClick={runConvert}>
                 Convert &amp; Generate Jadwal
               </button>
             </div>

@@ -414,11 +414,13 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
     D: 'Setup!$B$4', TM: 'Setup!$B$5', G: 'Setup!$B$6',
     SR: 'Setup!$B$9:$B$28', TR: 'Setup!$B$31:$B$50', XR: 'Setup!$B$53:$B$74',
   };
+  // Setup!B75 = rotation mode: RANDOM or ROTATE.
   // Setup!B76 = helper: maps B5 (start time) to valid-cycle index (vpStart).
   // Setup!B77 = helper: number of active senders (N) = batch size per time slot.
   // DAILY     = max emails per sender per day (hardcoded 20).
   const VP_CELL = 'Setup!$B$76';
   const NS_CELL = 'Setup!$B$77'; // MAX(COUNTA(senders), 1)
+  const MODE_CELL = 'Setup!$B$75';
   const DAILY   = 20;
 
   // SLOT  = global slot index (same for all N rows in a batch)
@@ -441,8 +443,8 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
     dt:  `=TEXT(${_DT},"YYYY-MM-DD HH:MM")`,
     day: `=TEXT(${_DT},"DDDD")`,
     snd: `=IF(COUNTA(${REF.SR})=0,"",INDEX(${REF.SR},MOD(ROW()-3,COUNTA(${REF.SR}))+1))`,
-    tpl: `=IF(COUNTA(${REF.TR})=0,"",INDEX(${REF.TR},MOD(ROW()-3+INT((ROW()-3)/COUNTA(${REF.SR})),COUNTA(${REF.TR}))+1))`,
-    sub: `=IF(COUNTA(${REF.XR})=0,"",INDEX(${REF.XR},MOD(ROW()-3+INT((ROW()-3)/COUNTA(${REF.SR})),COUNTA(${REF.XR}))+1))`,
+    tpl: `=IF(COUNTA(${REF.TR})=0,"",IF(${MODE_CELL}="RANDOM",INDEX(${REF.TR},MOD((ROW()-2)*7+3,COUNTA(${REF.TR}))+1),INDEX(${REF.TR},MOD(ROW()-3+INT((ROW()-3)/COUNTA(${REF.SR})),COUNTA(${REF.TR}))+1)))`,
+    sub: `=IF(COUNTA(${REF.XR})=0,"",IF(${MODE_CELL}="RANDOM",INDEX(${REF.XR},MOD((ROW()-2)*11+5,COUNTA(${REF.XR}))+1),INDEX(${REF.XR},MOD(ROW()-3+INT((ROW()-3)/COUNTA(${REF.SR})),COUNTA(${REF.XR}))+1)))`,
   };
 
   const wb = new ExcelJS.Workbook();
@@ -574,6 +576,20 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
     wsSetup.getRow(rn).height = 18;
   }
 
+  // Row 75: rotation mode for template/subject
+  sc(wsSetup.getCell('A75'), '  ✏  Mode template & subject', { bg: C.YELLOW, color: '1F3864', bold: true });
+  const modeCell = wsSetup.getCell('B75');
+  modeCell.value = 'RANDOM';
+  modeCell.fill = mkFill(C.YELLOW);
+  modeCell.font = { bold: true, size: 11, color: { argb: 'FF1F3864' } };
+  modeCell.alignment = { horizontal: 'left', vertical: 'middle' };
+  wsSetup.getRow(75).height = 24;
+  wsSetup.dataValidations.add('B75', {
+    type: 'list', allowBlank: false, formulae: ['"RANDOM,ROTATE"'],
+    showErrorMessage: true, errorStyle: 'stop',
+    errorTitle: 'Mode tidak valid', error: 'Pilih RANDOM atau ROTATE.',
+  });
+
   // Row 76: hidden helper — valid-cycle start index for blackout-skip formula
   {
     const vp = wsSetup.getCell('B76');
@@ -651,10 +667,10 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
                      .add(dayIdx + doWrap, 'day')
                      .hour(Math.floor(clkMin / 60)).minute(clkMin % 60).second(0);
 
-    // Sender/template/subject rotate by row index → unique combo per row within same slot
+    // Sender rotates predictably; template/subject default to deterministic random spread.
     const sEmail  = senderRows.length   > 0 ? senderRows[i % senderRows.length].sender_email                              : '';
-    const tKey    = templateRows.length > 0 ? templateRows[(i + slotIdx) % templateRows.length].template_key               : '';
-    const subj    = subjectRows.length  > 0 ? (subjectRows[(i + slotIdx) % subjectRows.length].subject || '')              : '';
+    const tKey    = templateRows.length > 0 ? templateRows[((i + 1) * 7 + 3) % templateRows.length].template_key            : '';
+    const subj    = subjectRows.length  > 0 ? (subjectRows[((i + 1) * 11 + 5) % subjectRows.length].subject || '')          : '';
 
     const r = wsJadwal.getRow(i + 3);
     r.height = 18;
@@ -710,24 +726,31 @@ app.get('/api/schedule/template', wrap(async (req, res) => {
   h.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
 
   ap('');
-  ap('  ① Setup sheet — ubah kalau perlu (formulas Jadwal otomatis ikut)', { bg: C.BLUE, height: 20, font: { bold: true, ...WHT } });
-  ap(`     → Sel B4 (KUNING): tanggal mulai — sekarang ${firstSlot.format('YYYY-MM-DD')}`, { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
-  ap(`     → Sel B5 (KUNING): jam mulai — sekarang ${firstSlot.format('HH:mm')} WIB`, { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
-  ap(`     → Sel B6 (KUNING): gap antar email — sekarang ${GAP_MIN} menit`, { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
-  ap('     → Edit B4/B5/B6 → sheet Jadwal auto-hitung ulang. Tekan F9 kalau perlu paksa refresh.', { bg: C.LBLUE });
-  ap('     → Daftar sender (B9:B28), template (B31:B50), subject (B53:B74) juga bisa diedit', { bg: C.LBLUE });
+  ap('  ① Sheet "Setup" — tempat mengatur jadwal otomatis', { bg: C.BLUE, height: 20, font: { bold: true, ...WHT } });
+  ap(`     → B4 Tanggal Mulai: tanggal pertama jadwal dibuat — default ${firstSlot.format('YYYY-MM-DD')}`, { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
+  ap(`     → B5 Jam Mulai: jam awal dalam WIB — default ${firstSlot.format('HH:mm')}`, { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
+  ap(`     → B6 Gap antar email: jarak antar slot — default ${GAP_MIN} menit, minimal 7 menit`, { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
+  ap('     → B7 Max kirim per sender per hari: batas email per akun per hari — default 20', { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
+  ap('     → B9:B28 Sender: daftar akun pengirim. Default diambil dari menu Akun Gmail yang aktif.', { bg: C.LBLUE });
+  ap('     → B31:B50 Template: kode template seperti T1/T2. Harus sama dengan menu Isi Email.', { bg: C.LBLUE });
+  ap('     → B53:B74 Subject Pool: subject yang dirotasi otomatis. Boleh diedit di Excel.', { bg: C.LBLUE });
+  ap('     → B75 Mode template & subject: RANDOM = sebar acak stabil, ROTATE = urutan rapi dari atas ke bawah.', { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
+  ap('     → Pakai RANDOM kalau penerima sedikit supaya email 1/2/3 tidak selalu dapat template/subject awal yang sama.', { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF1F3864' } } });
+  ap('     → Setelah edit Setup, sheet Jadwal otomatis berubah. Kalau belum berubah, tekan F9 atau buka ulang file.', { bg: C.LBLUE });
 
   ap('');
-  ap('  ② Sheet "Jadwal" — isi kolom recipient_email saja', { bg: C.BLUE, height: 20, font: { bold: true, ...WHT } });
+  ap('  ② Sheet "Jadwal" — isi penerima, jangan rusak formula', { bg: C.BLUE, height: 20, font: { bold: true, ...WHT } });
   ap('     → Kolom D (background KUNING) = recipient_email — satu-satunya yang WAJIB diisi', { bg: C.YELLOW, font: { size: 10, color: { argb: 'FF7B5E00' } } });
   ap('     → Kolom E = category — opsional, dropdown SaaS / Agency / Retail', { bg: C.LBLUE });
-  ap('     → Kolom B/C/F/G/H = formula otomatis — JANGAN diubah manual', { bg: C.DGRAY });
+  ap('     → Kolom B/C/F/G/H = formula otomatis dari Setup — JANGAN diubah manual', { bg: C.DGRAY });
   ap(`     → ${NUM_ROWS} baris formula tersedia — isi sebanyak yang dibutuhkan, baris kosong di-skip saat convert`, { bg: C.LBLUE });
+  ap('     → Kalau ingin mengubah jam/sender/template/subject massal, ubah di Setup, bukan di tiap baris Jadwal.', { bg: C.LBLUE });
 
   ap('');
   ap('  ③ Upload & Convert', { bg: C.BLUE, height: 20, font: { bold: true, ...WHT } });
-  ap('     → Menu Schedule → Upload Excel / CSV → pilih file ini', { bg: C.LBLUE });
+  ap('     → Menu Jadwal Email → Upload Excel / CSV → pilih file ini', { bg: C.LBLUE });
   ap('     → Klik "Convert & Generate Jadwal" — hanya baris dengan recipient_email yang diproses', { bg: C.LBLUE });
+  ap('     → Setelah convert selesai, klik Validate di dashboard untuk cek sender/template/jam sebelum run', { bg: C.LBLUE });
 
   ap('');
   ap('  ④ Tracking setelah automasi berjalan', { bg: C.BLUE, height: 20, font: { bold: true, ...WHT } });

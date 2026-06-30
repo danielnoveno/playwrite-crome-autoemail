@@ -57,14 +57,14 @@ const TemplatesPage: React.FC = () => {
           <button className="btn btn-outline" data-tour="templates-add" onClick={() => setTemplates(p => [...p, { template_key: `T${p.length + 1}`, body: '' }])}>
             <Plus size={16} /> Tambah Template
           </button>
-          <button className="btn" onClick={saveTemplates}><Save size={16} /> Simpan Template</button>
+          <button className="btn" data-tour="templates-save" onClick={saveTemplates}><Save size={16} /> Simpan Template</button>
         </div>
         {templates.map((t, i) => (
           <div className="template-card" key={i}>
             <div className="form-row">
               <label className="field" style={{ maxWidth: 160 }}>
                 <span>Kode Template</span>
-                <input value={t.template_key} onChange={e => setTemplates(p => p.map((x, idx) => idx === i ? { ...x, template_key: e.target.value } : x))} />
+                <input data-tour="templates-key" value={t.template_key} onChange={e => setTemplates(p => p.map((x, idx) => idx === i ? { ...x, template_key: e.target.value } : x))} />
               </label>
               <button className="btn btn-small btn-danger" style={{ alignSelf: 'flex-end' }}
                 onClick={() => confirm(`Delete template ${t.template_key}?`) && setTemplates(p => p.filter((_, idx) => idx !== i))}>
@@ -73,6 +73,7 @@ const TemplatesPage: React.FC = () => {
             </div>
             <textarea
               rows={6}
+              data-tour="templates-body"
               value={t.body}
               onChange={e => setTemplates(p => p.map((x, idx) => idx === i ? { ...x, body: e.target.value } : x))}
               placeholder="Isi email..."
@@ -88,10 +89,10 @@ const TemplatesPage: React.FC = () => {
           Dipakai bergantian ketika jadwal email tidak punya subject khusus.
         </p>
         <div className="form-row" style={{ marginBottom: '1rem' }}>
-          <button className="btn btn-outline" onClick={() => setSubjects(p => [...p, { subject_id: `S${p.length + 1}`, subject: '' }])}>
+          <button className="btn btn-outline" data-tour="subjects-add" onClick={() => setSubjects(p => [...p, { subject_id: `S${p.length + 1}`, subject: '' }])}>
             <Plus size={16} /> Tambah Subject
           </button>
-          <button className="btn" onClick={saveSubjects}><Save size={16} /> Simpan Subject</button>
+          <button className="btn" data-tour="subjects-save" onClick={saveSubjects}><Save size={16} /> Simpan Subject</button>
         </div>
         <table>
           <thead><tr><th style={{ width: 120 }}>ID</th><th>Subject</th><th style={{ width: 60 }}></th></tr></thead>
@@ -99,7 +100,7 @@ const TemplatesPage: React.FC = () => {
             {subjects.map((s, i) => (
               <tr key={i}>
                 <td><input className="cell-input" value={s.subject_id} onChange={e => setSubjects(p => p.map((x, idx) => idx === i ? { ...x, subject_id: e.target.value } : x))} /></td>
-                <td><input className="cell-input" value={s.subject} onChange={e => setSubjects(p => p.map((x, idx) => idx === i ? { ...x, subject: e.target.value } : x))} /></td>
+                <td><input className="cell-input" data-tour="subjects-input" value={s.subject} onChange={e => setSubjects(p => p.map((x, idx) => idx === i ? { ...x, subject: e.target.value } : x))} /></td>
                 <td><button className="btn btn-small btn-danger" onClick={() => setSubjects(p => p.filter((_, idx) => idx !== i))}><Trash2 size={14} /></button></td>
               </tr>
             ))}

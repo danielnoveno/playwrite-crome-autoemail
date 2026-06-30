@@ -10,6 +10,7 @@ const { app, BrowserWindow, Tray, Menu, shell, nativeImage, dialog } = require('
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
+const jobRunner = require('../server/jobRunner');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -83,6 +84,7 @@ let splashWindow = null;
 let splashShownAt = 0;
 let tray = null;
 let isQuitting = false;
+let closePromptOpen = false;
 
 // Prevent multiple instances
 const gotLock = app.requestSingleInstanceLock();
@@ -181,12 +183,10 @@ function createMainWindow() {
     }, delay);
   });
 
-  // Minimise to tray instead of closing
   mainWindow.on('close', (e) => {
-    if (!isQuitting) {
-      e.preventDefault();
-      mainWindow.hide();
-    }
+    if (isQuitting) return;
+    e.preventDefault();
+    confirmCloseApp();
   });
 
   // Open external links (mailto, https, etc.) in the default browser
@@ -196,6 +196,37 @@ function createMainWindow() {
     }
     return { action: 'deny' };
   });
+}
+
+function activeJobs() {
+  return jobRunner.listJobs().filter(j => j.status === 'running' || j.status === 'stopping');
+}
+
+function confirmCloseApp() {
+  if (closePromptOpen) return;
+  closePromptOpen = true;
+
+  const running = activeJobs();
+  const hasRunning = running.length > 0;
+  const detail = hasRunning
+    ? `Masih ada proses berjalan:\n${running.map(j => `- ${j.label} (${j.status})`).join('\n')}\n\nMenutup aplikasi bisa menghentikan proses automation/login yang sedang berjalan.`
+    : 'Tidak ada proses automation yang sedang berjalan. Aplikasi akan benar-benar ditutup.';
+
+  const result = dialog.showMessageBoxSync(mainWindow, {
+    type: hasRunning ? 'warning' : 'question',
+    buttons: hasRunning ? ['Batal', 'Tetap Tutup Aplikasi'] : ['Batal', 'Tutup Aplikasi'],
+    defaultId: 0,
+    cancelId: 0,
+    title: hasRunning ? 'Proses Masih Berjalan' : 'Tutup Gmail Scheduler?',
+    message: hasRunning ? 'Automation/login masih berjalan. Yakin ingin menutup aplikasi?' : 'Yakin ingin menutup aplikasi?',
+    detail,
+    noLink: true,
+  });
+
+  closePromptOpen = false;
+  if (result !== 1) return;
+  isQuitting = true;
+  app.quit();
 }
 
 // ---------------------------------------------------------------------------

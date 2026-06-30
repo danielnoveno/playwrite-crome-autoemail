@@ -30,7 +30,7 @@ async function run() {
   }
 
   for (const sender of targetSenders) {
-    console.log(`\nOpening browser for: ${sender.sender_email}`);
+    console.log(`\nMembuka Chrome untuk login akun: ${sender.sender_email}`);
     console.log(`Profile directory: ${sender.profile_dir}`);
     
     const context = await chromium.launchPersistentContext(path.resolve(sender.profile_dir), {
@@ -45,10 +45,24 @@ async function run() {
     });
 
     const page = await context.newPage();
+    await page.setContent(`
+      <html>
+        <head><title>Login Gmail - ${sender.sender_email}</title></head>
+        <body style="font-family: Arial, sans-serif; padding: 48px; color: #111;">
+          <h1 style="font-size: 28px; margin-bottom: 12px;">Login Gmail</h1>
+          <p style="font-size: 18px; line-height: 1.6;">Chrome ini dibuka untuk login akun:</p>
+          <p style="font-size: 24px; font-weight: 700; padding: 16px 20px; background: #fff7ed; border-left: 5px solid #fb923c; display: inline-block;">
+            ${sender.sender_email}
+          </p>
+          <p style="font-size: 16px; color: #555; margin-top: 24px;">Sebentar lagi Gmail akan terbuka otomatis. Login sampai inbox muncul, lalu tutup Chrome.</p>
+        </body>
+      </html>
+    `);
+    await page.waitForTimeout(2500);
     // Buka halaman login Gmail langsung agar user bisa login
     await page.goto('https://mail.google.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
     
-    console.log(`Please login manually if required. Waiting for ${argv.minutes} minutes...`);
+    console.log(`Silakan login manual untuk ${sender.sender_email}. Menunggu ${argv.minutes} menit...`);
     
     // Wait for the specified time or until the user closes the browser
     await new Promise(resolve => {

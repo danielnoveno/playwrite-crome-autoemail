@@ -105,7 +105,10 @@ const AccountsPage: React.FC = () => {
     try {
       const job = await post<Job>('/api/jobs/login', { sender, minutes: 15 });
       setLoginJobId(job.id);
-      setMessage('Chrome akan terbuka di PC ini. Login Gmail manual, tunggu sampai inbox muncul, lalu tutup Chrome.');
+      setMessage(sender
+        ? `Chrome akan terbuka untuk login: ${sender}. Login manual sampai inbox Gmail muncul, lalu tutup Chrome.`
+        : 'Chrome akan terbuka untuk Login Semua akun aktif satu per satu. Ikuti akun yang tampil di Gmail, login sampai inbox muncul, lalu tutup Chrome jika proses akun itu selesai.'
+      );
     } catch (e: any) { setMessage(e.message); }
   };
 
@@ -153,6 +156,7 @@ const AccountsPage: React.FC = () => {
                   <td>
                     <input
                       className="cell-input"
+                      data-tour="accounts-email"
                       value={s.sender_email}
                       onChange={e => update(i, 'sender_email', e.target.value)}
                       placeholder="user@gmail.com"
@@ -161,6 +165,7 @@ const AccountsPage: React.FC = () => {
                   <td>
                     <input
                       className="cell-input"
+                      data-tour="accounts-display"
                       value={s.display_name}
                       onChange={e => update(i, 'display_name', e.target.value)}
                     />
@@ -188,6 +193,7 @@ const AccountsPage: React.FC = () => {
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <button
                       className="btn btn-small btn-outline"
+                      data-tour="accounts-login"
                       onClick={() => openLogin(s.sender_email)}
                       disabled={!s.sender_email}
                       title="Buka Chrome untuk login Gmail"

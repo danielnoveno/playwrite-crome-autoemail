@@ -177,7 +177,7 @@ const RunPage: React.FC = () => {
           <button className="btn btn-outline" data-tour="run-check" onClick={() => start({ dryRun: true, limit: '3', limitPerSender: '', force: false })}>
             <ShieldAlert size={16} /> Cek Data
           </button>
-          <button className="btn btn-outline" onClick={() => start({ dryRun: false, limit: '3', limitPerSender: '', force: false })}>
+          <button className="btn btn-outline" data-tour="run-test" onClick={() => start({ dryRun: false, limit: '3', limitPerSender: '', force: false })}>
             <FlaskConical size={16} /> Test 3 Email
           </button>
           <button className="btn" onClick={() => start()}>
